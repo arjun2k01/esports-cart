@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AppProviders';
+import { useAuth, useToast } from '../context/AppProviders';
 import { validateEmail } from '../lib/validation';
-import { FormError } from '../components/Common';
+import { FormError, Input, Button } from '../components/Common';
+import { Loader2 } from 'lucide-react';
 
 export const SignUpPage = ({ setPage }) => {
-  const { signup } = useAuth();
+  const { signup } = useAuth(); // <--- This pulls the logic from AppProviders
+  const { showToast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -19,12 +23,21 @@ export const SignUpPage = ({ setPage }) => {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError("");
     if (!validate()) return;
     
-    if (signup(name, email, password)) {
-      setPage('home'); // Go to home after signup
+    setIsLoading(true);
+    // Calls the signup function from AuthContext
+    const result = await signup(name, email, password);
+    setIsLoading(false);
+    
+    if (result.success) {
+      showToast('Account created successfully!');
+      setPage('home'); // Redirects to home on success
+    } else {
+      setServerError(result.error || "Sign up failed. Please try again.");
     }
   };
 
@@ -35,37 +48,38 @@ export const SignUpPage = ({ setPage }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="name">Name</label>
-            <input 
+            <Input 
               type="text" id="name" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <FormError message={errors.name} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="email">Email</label>
-            <input 
+            <Input 
               type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <FormError message={errors.email} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="password">Password</label>
-            <input 
+            <Input 
               type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <FormError message={errors.password} />
           </div>
-          <button
+          
+          <FormError message={serverError} />
+
+          <Button
             type="submit"
-            className="w-full px-6 py-3 bg-blue-500 text-white font-bold text-lg rounded-md shadow-lg hover:bg-blue-400 transition-colors"
+            className="w-full bg-blue-500 text-white text-lg hover:bg-blue-400"
+            disabled={isLoading}
           >
-            Sign Up
-          </button>
+            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Sign Up'}
+          </Button>
           <p className="text-sm text-gray-400 text-center">
             Already have an account?{" "}
-            <button onClick={() => setPage('login')} className="text-blue-400 hover:underline font-medium">
+            <button type="button" onClick={() => setPage('login')} className="text-blue-400 hover:underline font-medium">
               Login
             </button>
           </p>

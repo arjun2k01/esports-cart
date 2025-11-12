@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Minus, Plus, Star, Zap, Loader2 } from 'lucide-react';
-import { mockProducts } from '../data/mockProducts.js';
-import { useCart, useToast, useReviews, useAuth } from '../context/AppProviders';
+import { useProducts, useCart, useToast, useReviews, useAuth } from '../context/AppProviders'; // Import useProducts
 import { callGeminiAPI } from '../lib/gemini';
 import { FormError, StarRating } from '../components/Common';
 
@@ -10,6 +9,9 @@ export const ProductDetailPage = ({ productId, setPage }) => {
   const { showToast } = useToast();
   const { addReview, getReviewsForProduct } = useReviews();
   const { user } = useAuth();
+  
+  // Get all products from context
+  const { products, loading, error } = useProducts();
   
   const [quantity, setQuantity] = useState(1);
   const [reviewRating, setReviewRating] = useState(0);
@@ -21,13 +23,24 @@ export const ProductDetailPage = ({ productId, setPage }) => {
   const [reviewSummary, setReviewSummary] = useState("");
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   
-  const product = mockProducts.find(p => p.id === productId);
-  const reviews = getReviewsForProduct(productId);
+  // Find the specific product from the live data
+  const product = products.find(p => (p._id || p.id) === productId);
+  
+  // Get reviews using the correct ID (MongoDB _id or mock id)
+  const reviews = product ? getReviewsForProduct(product._id || product.id) : [];
 
-  if (!product) {
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-16">
+        <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
     return (
       <div className="container mx-auto px-4 py-12 text-center text-white">
-        <h2 className="text-2xl font-bold mb-4">Product not found!</h2>
+        <h2 className="text-2xl font-bold mb-4">{error || 'Product not found!'}</h2>
         <button onClick={() => setPage('products')} className="px-6 py-2 bg-blue-500 text-white font-bold rounded-md shadow-lg hover:bg-blue-400">
           Back to Products
         </button>
@@ -47,7 +60,8 @@ export const ProductDetailPage = ({ productId, setPage }) => {
       showToast('Please provide a rating and a review.', 'error');
       return;
     }
-    addReview(productId, {
+    // Pass the correct product ID
+    addReview(product._id || product.id, {
       author: user?.name || 'AnonymousGamer',
       rating: reviewRating,
       text: reviewText,
@@ -65,7 +79,6 @@ export const ProductDetailPage = ({ productId, setPage }) => {
     let systemPrompt = "You are a helpful expert.";
     let userQuery = `Tell me something interesting about the '${product.name}'.`;
 
-    // Context-aware prompts
     if (product.category === 'Weapon Skins') {
       systemPrompt = "You are a pro-level BGMI (Battlegrounds Mobile India) esports analyst and strategist.";
       userQuery = `I'm planning to use the '${product.name}'. Suggest a complete tactical loadout for me. Include a recommended secondary weapon, all attachments for both weapons, and a short, aggressive strategy for the Erangel map. Format it clearly.`;
