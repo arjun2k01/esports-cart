@@ -1,11 +1,12 @@
-import React, { useState, useContext, createContext, useMemo } from 'react';
+import React, { useState, useContext, createContext, useMemo, useEffect } from 'react';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { ToastContainer } from '../components/ToastContainer';
+import axios from 'axios'; // Import axios
 
 // --- AUTH CONTEXT ---
 const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null); 
 
@@ -39,7 +40,7 @@ export const useAuth = () => useContext(AuthContext);
 // --- TOAST CONTEXT ---
 const ToastContext = createContext();
 
-const ToastProvider = ({ children }) => {
+export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const showToast = (message, type = 'success') => {
@@ -67,15 +68,18 @@ export const useToast = () => useContext(ToastContext);
 // --- CART CONTEXT ---
 const CartContext = createContext();
 
-const CartProvider = ({ children }) => {
+export const CartProvider = ({ children }) => {
   const [cart, setCart] = usePersistentState('esportsCart', []);
 
   const addToCart = (product, quantity = 1) => {
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
+      // Use product._id if it exists (from MongoDB), otherwise fallback to id
+      const productId = product._id || product.id;
+      const existingItem = prevCart.find(item => (item._id || item.id) === productId);
+      
       if (existingItem) {
         return prevCart.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+          (item._id || item.id) === productId ? { ...item, quantity: item.quantity + quantity } : item
         );
       } else {
         return [...prevCart, { ...product, quantity }];
@@ -84,7 +88,7 @@ const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    setCart(prevCart => prevCart.filter(item => (item._id || item.id) !== productId));
   };
 
   const updateQuantity = (productId, newQuantity) => {
@@ -93,7 +97,7 @@ const CartProvider = ({ children }) => {
     } else {
       setCart(prevCart =>
         prevCart.map(item =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
+          (item._id || item.id) === productId ? { ...item, quantity: newQuantity } : item
         )
       );
     }
@@ -124,19 +128,25 @@ export const useCart = () => useContext(CartContext);
 // --- WISHLIST CONTEXT ---
 const WishlistContext = createContext();
 
-const WishlistProvider = ({ children }) => {
+export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = usePersistentState('esportsWishlist', []);
   
   const addToWishlist = (product) => {
-    setWishlist(prev => [...prev, product]);
+     setWishlist(prev => {
+      const productId = product._id || product.id;
+      if (prev.some(item => (item._id || item.id) === productId)) {
+        return prev; // Already in wishlist
+      }
+      return [...prev, product];
+    });
   };
   
   const removeFromWishlist = (productId) => {
-    setWishlist(prev => prev.filter(item => item.id !== productId));
+    setWishlist(prev => prev.filter(item => (item._id || item.id) !== productId));
   };
   
   const isInWishlist = (productId) => {
-    return wishlist.some(item => item.id === productId);
+    return wishlist.some(item => (item._id || item.id) === productId);
   };
   
   return (
@@ -150,8 +160,8 @@ export const useWishlist = () => useContext(WishlistContext);
 // --- ORDER CONTEXT ---
 const OrderContext = createContext();
 
-const OrderProvider = ({ children }) => {
-  const [orders, setOrders] = usePersistentState('esportsOrders', []);
+export const OrderProvider = ({ children }) => {
+  const [orders, setOrders] = usePersistentState('esportsOrders', []); // <-- FIX was here
   
   const addOrder = (cart, total) => {
     const newOrder = {
@@ -174,19 +184,22 @@ export const useOrders = () => useContext(OrderContext);
 // --- REVIEW CONTEXT ---
 const ReviewContext = createContext();
 
-const ReviewProvider = ({ children }) => {
+export const ReviewProvider = ({ children }) => {
   const [reviews, setReviews] = usePersistentState('esportsReviews', {});
 
   const addReview = (productId, review) => {
     const newReview = { ...review, id: Date.now(), date: new Date().toISOString() };
+    const id = productId._id || productId;
     setReviews(prev => {
-      const productReviews = prev[productId] || [];
-      return { ...prev, [productId]: [newReview, ...productReviews] };
+      const productReviews = prev[id] || [];
+      return { ...prev, [id]: [newReview, ...productReviews] };
     });
   };
   
   const getReviewsForProduct = (productId) => {
-    return reviews[productId] || [];
+    // Ensure product._id is used if available
+    const id = productId._id || productId;
+    return reviews[id] || [];
   };
   
   return (
@@ -197,22 +210,59 @@ const ReviewProvider = ({ children }) => {
 };
 export const useReviews = () => useContext(ReviewContext);
 
+// --- NEW: PRODUCT CONTEXT ---
+const ProductContext = createContext();
+
+export const ProductProvider = ({ children }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // THIS IS THE CONNECTION:
+        const { data } = await axios.get('http://localhost:5000/api/products');
+        setProducts(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load products. Please ensure the backend server is running.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []); // Runs once on app load
+
+  return (
+    <ProductContext.Provider value={{ products, loading, error }}>
+      {children}
+    </ProductContext.Provider>
+  );
+};
+export const useProducts = () => useContext(ProductContext);
+
 // --- MAIN APP PROVIDER ---
 // This component bundles all providers for clean wrapping in App.jsx
 export const AppProviders = ({ children }) => {
   return (
     <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <OrderProvider>
-            <ReviewProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </ReviewProvider>
-          </OrderProvider>
-        </WishlistProvider>
-      </CartProvider>
+      <ProductProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <OrderProvider>
+              <ReviewProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </ReviewProvider>
+            </OrderProvider>
+          </WishlistProvider>
+        </CartProvider>
+      </ProductProvider>
     </AuthProvider>
   );
 };
