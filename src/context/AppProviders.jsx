@@ -98,33 +98,105 @@ export const ToastProvider = ({ children }) => {
 };
 export const useToast = () => useContext(ToastContext);
 
-// --- CART CONTEXT ---
+// --- CART CONTEXT (UPDATED FOR BACKEND) ---
 const CartContext = createContext();
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = usePersistentState('esportsCart', []);
-  const getProductId = (product) => product._id || product.id;
+  // We use local state now, initialized with empty array. Data comes from API.
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
-  const addToCart = (product, quantity = 1) => {
-    setCart(prev => {
-      const pid = getProductId(product);
-      const exists = prev.find(item => getProductId(item) === pid);
-      if (exists) {
-        return prev.map(item => getProductId(item) === pid ? { ...item, quantity: item.quantity + quantity } : item);
+  // Fetch cart from backend when user logs in
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (user) {
+        try {
+          setLoading(true);
+          const { data } = await axios.get('http://localhost:5000/api/cart');
+          // Backend returns items with 'product' field as ID. We map to _id for frontend consistency
+          const mappedCart = data.map(item => ({
+            ...item,
+            _id: item.product._id || item.product, // Handle populated or unpopulated
+          }));
+          setCart(mappedCart);
+        } catch (error) {
+          console.error("Failed to fetch cart", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setCart([]); // Clear cart on logout
       }
-      return [...prev, { ...product, quantity }];
+    };
+    fetchCart();
+  }, [user]);
+
+  const addToCart = async (product, quantity = 1) => {
+    // Optimistic UI update
+    const product_id = product._id || product.id;
+    const newItem = { ...product, quantity, _id: product_id };
+    
+    setCart(prev => {
+      const exists = prev.find(item => item._id === product_id);
+      if (exists) {
+        return prev.map(item => item._id === product_id ? { ...item, quantity: item.quantity + quantity } : item);
+      }
+      return [...prev, newItem];
     });
+
+    if (user) {
+      try {
+        await axios.post('http://localhost:5000/api/cart', { productId: product_id, quantity });
+      } catch (error) {
+        console.error("Failed to sync add to cart", error);
+      }
+    }
   };
-  const removeFromCart = (pid) => setCart(prev => prev.filter(item => getProductId(item) !== pid));
-  const updateQuantity = (pid, qty) => {
-    if (qty <= 0) removeFromCart(pid);
-    else setCart(prev => prev.map(item => getProductId(item) === pid ? { ...item, quantity: qty } : item));
+
+  const removeFromCart = async (productId) => {
+    setCart(prev => prev.filter(item => item._id !== productId));
+    if (user) {
+      try {
+        await axios.delete(`http://localhost:5000/api/cart/${productId}`);
+      } catch (error) {
+        console.error("Failed to sync remove from cart", error);
+      }
+    }
   };
-  const clearCart = () => setCart([]);
+
+  const updateQuantity = async (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    
+    setCart(prev => prev.map(item => item._id === productId ? { ...item, quantity: newQuantity } : item));
+    
+    if (user) {
+      try {
+        await axios.put(`http://localhost:5000/api/cart/${productId}`, { quantity: newQuantity });
+      } catch (error) {
+        console.error("Failed to sync update cart", error);
+      }
+    }
+  };
+
+  const clearCart = async () => {
+    setCart([]);
+    if (user) {
+      try {
+        await axios.delete('http://localhost:5000/api/cart');
+      } catch (error) {
+        console.error("Failed to clear cart", error);
+      }
+    }
+  };
+
   const cartTotal = useMemo(() => cart.reduce((acc, item) => acc + item.price * item.quantity, 0), [cart]);
   const cartItemCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartItemCount }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartItemCount, loading }}>
       {children}
     </CartContext.Provider>
   );
@@ -153,30 +225,27 @@ export const WishlistProvider = ({ children }) => {
 };
 export const useWishlist = () => useContext(WishlistContext);
 
-// --- ORDER CONTEXT (UPDATED FOR BACKEND) ---
+// --- ORDER CONTEXT ---
 const OrderContext = createContext();
 export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
   const { user } = useAuth();
 
-  // Fetch orders when user logs in
   useEffect(() => {
     if (user) {
       getMyOrders();
     } else {
-      setOrders([]); // Clear orders on logout
+      setOrders([]);
     }
   }, [user]);
 
   const createOrder = async (orderData) => {
     try {
       setLoading(true);
-      // Note: Auth header is set in AuthProvider automatically
       const { data } = await axios.post('http://localhost:5000/api/orders', orderData);
-      setOrders((prev) => [...prev, data]);
+      setOrders((prev) => [data, ...prev]);
       setLoading(false);
       return { success: true };
     } catch (err) {

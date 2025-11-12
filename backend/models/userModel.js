@@ -1,52 +1,43 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
-const orderSchema = mongoose.Schema(
+const cartItemSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+  },
+  name: { type: String, required: true },
+  image: { type: String, required: true },
+  price: { type: Number, required: true },
+  quantity: { type: Number, required: true, default: 1 },
+});
+
+const userSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: 'User',
-    },
-    orderItems: [
-      {
-        name: { type: String, required: true },
-        qty: { type: Number, required: true },
-        image: { type: String, required: true },
-        price: { type: Number, required: true },
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: 'Product',
-        },
-      },
-    ],
-    shippingAddress: {
-      address: { type: String, required: true },
-    },
-    paymentMethod: {
-      type: String,
-      required: true,
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    isPaid: {
-      type: Boolean,
-      required: true,
-      default: true, // We'll just assume it's paid for this demo
-    },
-    paidAt: {
-      type: Date,
-      default: Date.now,
-    },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    isAdmin: { type: Boolean, required: true, default: false },
+    cart: [cartItemSchema], // Store cart items here
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-const Order = mongoose.model('Order', orderSchema);
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
-export default Order;
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    next();
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+const User = mongoose.model('User', userSchema);
+
+export default User;

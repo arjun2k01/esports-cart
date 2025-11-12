@@ -1,9 +1,9 @@
 import React from 'react';
 import { useCart, useAuth } from '../context/AppProviders';
-import { Trash2, Plus, Minus, CreditCard } from 'lucide-react';
+import { Trash2, Plus, Minus, CreditCard, Loader2 } from 'lucide-react'; // Add Loader2
 
 export const CartPage = ({ setPage }) => {
-  const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartTotal, loading } = useCart(); // Get loading
   const { isAuthenticated } = useAuth();
   
   const handleCheckout = () => {
@@ -16,6 +16,14 @@ export const CartPage = ({ setPage }) => {
 
   // Helper to get the correct ID
   const getProductId = (item) => item._id || item.id;
+
+  if (loading && cart.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-12 flex justify-center items-center h-64">
+        <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">

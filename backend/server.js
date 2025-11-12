@@ -4,7 +4,8 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import productRoutes from "./routes/productRoutes.js";
 import userRoutes from './routes/userRoutes.js';
-import orderRoutes from './routes/orderRoutes.js'; // NEW: Import
+import orderRoutes from './routes/orderRoutes.js';
+import cartRoutes from './routes/cartRoutes.js'; // NEW: Import
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -30,7 +31,8 @@ app.get('/api/test', (req, res) => res.json({ message: 'Backend is running!' }))
 
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/orders', orderRoutes); // NEW: Use order routes
+app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes); // NEW: Use cart routes
 
 app.use(notFound);
 app.use(errorHandler);
