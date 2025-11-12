@@ -24,20 +24,29 @@ router.post('/', protect, async (req, res, next) => {
 
   try {
     const order = new Order({
+      // --- THIS IS THE FIX ---
+      // We manually map the fields from the cart (x) to the fields
+      // our OrderModel is expecting.
       orderItems: orderItems.map((x) => ({
-        ...x,
-        product: x._id || x.id, // Ensure we save the product ID ref
+        name: x.name,
+        qty: x.quantity, // map 'quantity' from cart to 'qty' in model
+        image: x.image,
+        price: x.price,
+        product: x._id, // map '_id' from cart to 'product' in model
       })),
+      // --- END OF FIX ---
       user: req.user._id,
       shippingAddress,
       paymentMethod,
       totalPrice,
+      isPaid: true, // Assuming payment is successful for this demo
+      paidAt: Date.now(),
     });
 
     const createdOrder = await order.save();
     res.status(201).json(createdOrder);
   } catch (error) {
-    next(error);
+    next(error); // Pass the error to our custom error handler
   }
 });
 

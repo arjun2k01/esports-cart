@@ -6,12 +6,20 @@ import { CreditCard, Loader2 } from 'lucide-react';
 
 export const CheckoutPage = ({ setPage }) => {
   const { cart, cartTotal, clearCart } = useCart();
-  const { createOrder } = useOrders(); // Use createOrder instead of addOrder
+  const { createOrder } = useOrders(); // Use createOrder from context
   const { showToast } = useToast();
   const { user } = useAuth();
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', address: '', card: '1234 5678 9012 3456', expiry: '12/28', cvc: '123' });
+  
+  const [form, setForm] = useState({ 
+    name: user?.name || '', 
+    email: user?.email || '', 
+    address: '', 
+    card: '1234 5678 9012 3456', 
+    expiry: '12/28', 
+    cvc: '123' 
+  });
   const [errors, setErrors] = useState({});
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Loading state for the button
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.id]: e.target.value });
@@ -38,14 +46,15 @@ export const CheckoutPage = ({ setPage }) => {
     
     setIsProcessing(true);
 
-    // Create order data structure for backend
+    // Create the order object for the backend
     const orderData = {
       orderItems: cart,
       shippingAddress: { address: form.address },
-      paymentMethod: 'Card', // Hardcoded for now
+      paymentMethod: 'MockCreditCard',
       totalPrice: cartTotal,
     };
 
+    // Call the new createOrder API
     const result = await createOrder(orderData);
     
     setIsProcessing(false);
@@ -55,6 +64,7 @@ export const CheckoutPage = ({ setPage }) => {
       showToast('Order placed successfully!');
       setPage('orderConfirmation');
     } else {
+      // Show the error from the backend
       showToast(result.error || 'Failed to place order', 'error');
     }
   };
@@ -64,8 +74,6 @@ export const CheckoutPage = ({ setPage }) => {
       <h1 className="text-4xl font-extrabold text-white text-center mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <form onSubmit={handlePlaceOrder} id="checkout-form" className="lg:col-span-2 bg-gray-800 p-8 rounded-lg shadow-xl space-y-4">
-          {/* ... (Form fields remain mostly the same, just using Input components for consistency) ... */}
-          {/* I will include the full form here to be safe */}
           <h2 className="text-2xl font-bold text-white mb-4">Shipping Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -81,7 +89,7 @@ export const CheckoutPage = ({ setPage }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="address">Address</label>
-            <Input type="text" id="address" value={form.address} onChange={handleChange} />
+            <Input type="text" id="address" value={form.address} onChange={handleChange} placeholder="Noida Sector 27" />
             <FormError message={errors.address} />
           </div>
           

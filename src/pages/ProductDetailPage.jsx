@@ -74,9 +74,6 @@ export const ProductDetailPage = ({ productId, setPage }) => {
     showToast('Review submitted!');
   };
 
-  // ... (The rest of the file, including handleGetAiInsight and JSX, remains the same) ...
-  // I will provide the full file content below to be safe.
-
   const handleGetAiInsight = async () => {
     setIsAiInsightLoading(true);
     setAiInsight("");

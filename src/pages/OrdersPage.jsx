@@ -3,12 +3,14 @@ import { useOrders } from '../context/AppProviders';
 import { Package, Loader2 } from 'lucide-react';
 
 export const OrdersPage = () => {
-  // Get orders, loading, and fetch function from context
+  // Get orders, loading state, and fetch function from context
   const { orders, loading, getMyOrders } = useOrders();
 
-  // Refresh orders when the page loads
+  // Fetch orders when the page loads
   useEffect(() => {
     getMyOrders();
+    // We only want this to run once when the component mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading && orders.length === 0) {
@@ -31,6 +33,7 @@ export const OrdersPage = () => {
         ) : (
           <div className="space-y-6">
             {orders.map(order => (
+              // Use the MongoDB _id as the key
               <div key={order._id} className="bg-gray-800 p-6 rounded-lg shadow-xl">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 pb-4 border-b border-gray-700">
                   <div>
@@ -46,7 +49,8 @@ export const OrdersPage = () => {
                 </div>
                 <div className="space-y-4">
                   {order.orderItems.map(item => (
-                    <div key={item._id || item.product} className="flex items-center">
+                    // Use the product _id as the key
+                    <div key={item.product} className="flex items-center">
                       <img src={item.image} alt={item.name} className="w-16 h-16 rounded-md object-cover mr-4" />
                       <div>
                         <p className="font-medium text-white">{item.name}</p>
