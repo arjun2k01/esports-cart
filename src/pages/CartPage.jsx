@@ -14,6 +14,9 @@ export const CartPage = ({ setPage }) => {
     }
   };
 
+  // Helper to get the correct ID
+  const getProductId = (item) => item._id || item.id;
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">
       <h1 className="text-4xl font-extrabold text-white text-center mb-8">Your Cart</h1>
@@ -29,7 +32,7 @@ export const CartPage = ({ setPage }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
             {cart.map(item => (
-              <div key={item.id} className="flex flex-col sm:flex-row items-center bg-gray-800 p-4 rounded-lg shadow-lg">
+              <div key={getProductId(item)} className="flex flex-col sm:flex-row items-center bg-gray-800 p-4 rounded-lg shadow-lg">
                 <img 
                   src={item.image} 
                   alt={item.name} 
@@ -42,15 +45,15 @@ export const CartPage = ({ setPage }) => {
                 </div>
                 <div className="flex items-center gap-2 mt-4 sm:mt-0 sm:ml-auto">
                   <div className="flex items-center border border-gray-600 rounded-md">
-                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-2 py-1 text-gray-300 hover:bg-gray-700 rounded-l-md">
+                    <button onClick={() => updateQuantity(getProductId(item), item.quantity - 1)} className="px-2 py-1 text-gray-300 hover:bg-gray-700 rounded-l-md">
                       <Minus className="h-4 w-4" />
                     </button>
                     <span className="px-3 py-1 text-white font-bold">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-2 py-1 text-gray-300 hover:bg-gray-700 rounded-r-md">
+                    <button onClick={() => updateQuantity(getProductId(item), item.quantity + 1)} className="px-2 py-1 text-gray-300 hover:bg-gray-700 rounded-r-md">
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <button onClick={() => removeFromCart(item.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-700">
+                  <button onClick={() => removeFromCart(getProductId(item))} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-700">
                     <Trash2 className="h-5 w-5" />
                   </button>
                 </div>

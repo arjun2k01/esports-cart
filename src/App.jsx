@@ -14,7 +14,7 @@ import { SignUpPage } from './pages/SignUpPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { OrdersPage } from './pages/OrdersPage';
-import { WishlistPage } from './pages/WishListPage';
+import { WishlistPage } from './pages/WishListPage'; // Corrected casing
 
 export default function App() {
   const [page, setPage] = useState('home');
