@@ -5,7 +5,6 @@ import axios from 'axios';
 
 // --- AUTH CONTEXT ---
 const AuthContext = createContext();
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = usePersistentState('esportsUser', null);
   const isAuthenticated = !!user;
@@ -50,7 +49,6 @@ export const useAuth = () => useContext(AuthContext);
 
 // --- PRODUCT CONTEXT ---
 const ProductContext = createContext();
-
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +62,7 @@ export const ProductProvider = ({ children }) => {
         setProducts(data);
         setError(null);
       } catch (err) {
-        setError('Could not load products. Is the backend running?');
+        setError('Could not load products. Is backend running?');
         console.error(err);
       } finally {
         setLoading(false);
@@ -155,16 +153,54 @@ export const WishlistProvider = ({ children }) => {
 };
 export const useWishlist = () => useContext(WishlistContext);
 
-// --- ORDER CONTEXT ---
+// --- ORDER CONTEXT (UPDATED FOR BACKEND) ---
 const OrderContext = createContext();
 export const OrderProvider = ({ children }) => {
-  const [orders, setOrders] = usePersistentState('esportsOrders', []);
-  const addOrder = (cart, total) => {
-    const newOrder = { id: `ES-${Date.now()}`, date: new Date().toISOString(), items: cart, total };
-    setOrders(prev => [newOrder, ...prev]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const { user } = useAuth();
+
+  // Fetch orders when user logs in
+  useEffect(() => {
+    if (user) {
+      getMyOrders();
+    } else {
+      setOrders([]); // Clear orders on logout
+    }
+  }, [user]);
+
+  const createOrder = async (orderData) => {
+    try {
+      setLoading(true);
+      // Note: Auth header is set in AuthProvider automatically
+      const { data } = await axios.post('http://localhost:5000/api/orders', orderData);
+      setOrders((prev) => [...prev, data]);
+      setLoading(false);
+      return { success: true };
+    } catch (err) {
+      setLoading(false);
+      const msg = err.response?.data?.message || err.message;
+      setError(msg);
+      return { success: false, error: msg };
+    }
   };
+
+  const getMyOrders = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get('http://localhost:5000/api/orders/myorders');
+      setOrders(data);
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setError(err.response?.data?.message || err.message);
+    }
+  };
+  
   return (
-    <OrderContext.Provider value={{ orders, addOrder }}>
+    <OrderContext.Provider value={{ orders, createOrder, getMyOrders, loading, error }}>
       {children}
     </OrderContext.Provider>
   );

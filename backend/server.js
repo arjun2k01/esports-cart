@@ -3,8 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import productRoutes from "./routes/productRoutes.js";
-import userRoutes from './routes/userRoutes.js'; // NEW: User routes
-import { notFound, errorHandler } from './middleware/errorMiddleware.js'; // NEW: Error handling
+import userRoutes from './routes/userRoutes.js';
+import orderRoutes from './routes/orderRoutes.js'; // NEW: Import
+import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
 
@@ -27,13 +28,12 @@ app.use(express.json());
 
 app.get('/api/test', (req, res) => res.json({ message: 'Backend is running!' }));
 
-// Routes
 app.use('/api/products', productRoutes);
-app.use('/api/users', userRoutes); // NEW: Auth route
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes); // NEW: Use order routes
 
-// Error Middleware
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
