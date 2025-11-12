@@ -1,10 +1,6 @@
 import React from 'react';
 import { AlertCircle, Star } from 'lucide-react';
 
-/**
- * FormError Component
- * Displays a validation error message
- */
 export const FormError = ({ message }) => {
   if (!message) return null;
   return (
@@ -15,45 +11,25 @@ export const FormError = ({ message }) => {
   );
 };
 
-/**
- * StarRating Component
- */
 export const StarRating = ({ rating }) => {
   return (
     <div className="flex items-center">
       {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          className={`h-5 w-5 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-600'}`}
-        />
+        <Star key={i} className={`h-5 w-5 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-600'}`} />
       ))}
     </div>
   );
 };
 
-/**
- * Input Component (NEW)
- * Reusable styled input field
- */
 export const Input = ({ className = "", ...props }) => {
   return (
-    <input
-      className={`w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
-      {...props}
-    />
+    <input className={`w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`} {...props} />
   );
 };
 
-/**
- * Button Component (NEW)
- * Reusable styled button
- */
 export const Button = ({ children, className = "", ...props }) => {
   return (
-    <button
-      className={`px-6 py-3 rounded-md font-bold shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${className}`}
-      {...props}
-    >
+    <button className={`px-6 py-3 rounded-md font-bold shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${className}`} {...props}>
       {children}
     </button>
   );
