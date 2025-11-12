@@ -1,7 +1,0 @@
-{
-  "version": 2,
-  "ignoreCommand": "echo 'Ignoring backend build for Vercel'",
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}
