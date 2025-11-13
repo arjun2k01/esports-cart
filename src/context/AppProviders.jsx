@@ -1,116 +1,32 @@
-import React, { useState, useContext, createContext, useMemo, useEffect } from 'react';
-import { usePersistentState } from '../hooks/usePersistentState';
-import { ToastContainer } from '../components/ToastContainer';
+// src/context/AppProviders.jsx
+import React from 'react';
 import axios from 'axios';
 
-// === Global API Configuration ===
-// If running locally, VITE_API_URL can be "http://localhost:5000/api"
-// On Vercel, backend is served from /api
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+/*
+  Prefer VITE_API_URL when provided during the Vite build.
+  Otherwise fall back to the Render backend URL so the
+  deployed frontend can reach the API even if the env var
+  wasn't set at build time.
+*/
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'https://esports-cart.onrender.com/api';
+
+// Configure axios default base URL for all requests
 axios.defaults.baseURL = API_BASE_URL;
 
-// Automatically attach Authorization header if user is logged in
-axios.interceptors.request.use((config) => {
-  const userData = localStorage.getItem('esportsUser');
-  if (userData) {
-    const user = JSON.parse(userData);
-    if (user.token) {
-      config.headers.Authorization = `Bearer ${user.token}`;
-    }
-  }
-  return config;
+// Example context and provider (minimal) — keep as-is if your app uses it
+export const AppContext = React.createContext({
+  apiBaseUrl: API_BASE_URL,
 });
 
-// --- AUTH CONTEXT ---
-const AuthContext = createContext();
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = usePersistentState('esportsUser', null);
-  const isAuthenticated = !!user;
-
-  const login = async (email, password) => {
-    try {
-      const { data } = await axios.post('/users/login', { email, password });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.message || error.message };
-    }
-  };
-
-  const signup = async (name, email, password) => {
-    try {
-      const { data } = await axios.post('/users/register', { name, email, password });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.message || error.message };
-    }
-  };
-
-  const logout = () => setUser(null);
-
+export default function AppProviders({ children }) {
+  // you can add shared state/providers here if needed
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, signup }}>
+    <AppContext.Provider value={{ apiBaseUrl: API_BASE_URL }}>
       {children}
-    </AuthContext.Provider>
+    </AppContext.Provider>
   );
-};
-export const useAuth = () => useContext(AuthContext);
-
-// --- PRODUCT CONTEXT ---
-const ProductContext = createContext();
-export const ProductProvider = ({ children }) => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get('/products');
-        setProducts(data);
-      } catch (err) {
-        console.error(err);
-        setError('Could not load products. Is backend running?');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  return (
-    <ProductContext.Provider value={{ products, loading, error }}>
-      {children}
-    </ProductContext.Provider>
-  );
-};
-export const useProducts = () => useContext(ProductContext);
-
-// --- TOAST CONTEXT ---
-const ToastContext = createContext();
-export const ToastProvider = ({ children }) => {
-  const [toasts, setToasts] = useState([]);
-  const showToast = (message, type = 'success') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  };
-  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
-  return (
-    <ToastContext.Provider value={{ showToast }}>
-      {children}
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
-    </ToastContext.Provider>
-  );
-};
-export const useToast = () => useContext(ToastContext);
-
-// --- CART CONTEXT ---
-const CartContext = createContext();
-export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+}  const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 

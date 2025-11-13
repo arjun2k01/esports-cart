@@ -10,7 +10,6 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
 
-// --- Connect to MongoDB ---
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
@@ -24,10 +23,9 @@ connectDB();
 
 const app = express();
 
-// --- CORS Setup ---
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN,     // Vercel frontend
-  'http://localhost:5173'        // Local dev (Vite)
+  process.env.CLIENT_ORIGIN,
+  'http://localhost:5173'
 ];
 
 app.use(cors({
@@ -42,24 +40,17 @@ app.use(cors({
   credentials: true
 }));
 
-// --- Middleware ---
 app.use(express.json());
 
-// --- Test Route ---
 app.get('/api/test', (req, res) => res.json({ message: '✅ Backend is running!' }));
 
-// --- API Routes ---
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 
-// --- Error Handling ---
 app.use(notFound);
 app.use(errorHandler);
 
-// --- Server Start ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
