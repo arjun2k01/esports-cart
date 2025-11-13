@@ -1,70 +1,79 @@
-import React, { useState } from 'react';
-import { Heart, Loader2 } from 'lucide-react'; // Add Loader2
-import { useCart, useToast, useWishlist } from '../context/AppProviders';
+// src/components/ProductCard.jsx
+import { Link } from "react-router-dom";
+import { useCart, useWishlist } from "../context/AppProviders";
+import { Heart, HeartOff, ShoppingCart } from "lucide-react";
 
-export const ProductCard = ({ product, setPage, setSelectedProductId }) => {
+const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
-  const { showToast } = useToast();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const [isAdding, setIsAdding] = useState(false); // New state
-  
-  const productId = product._id || product.id;
-  const inWishlist = isInWishlist(productId);
-  
-  const handleViewDetails = () => {
-    setSelectedProductId(productId);
-    setPage('productDetail');
-  };
-  
-  const handleAddToCart = async (e) => {
-    e.stopPropagation();
-    setIsAdding(true);
-    await addToCart(product); // Wait for API
-    setIsAdding(false);
-    showToast(`${product.name} added to cart!`);
-  };
+  const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
-  const handleWishlistToggle = (e) => {
-    e.stopPropagation();
-    if (inWishlist) {
-      removeFromWishlist(productId);
-      showToast(`${product.name} removed from wishlist!`, 'error');
-    } else {
-      addToWishlist(product);
-      showToast(`${product.name} added to wishlist!`);
-    }
-  };
+  const inWishlist = wishlist.some((item) => item._id === product._id);
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 transform hover:-translate-y-1">
-      <div className="relative h-56 w-full cursor-pointer" onClick={handleViewDetails}>
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="w-full h-full object-cover"
-          onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/600x400/2d3748/FFFFFF?text=Image+Error'; }}
+    <div className="bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition flex flex-col">
+      {/* Product Clickable Image */}
+      <Link to={`/product/${product._id}`}>
+        <img
+          src={product.image}
+          alt={product.name}
+          className="rounded-xl w-full h-48 object-cover mb-4"
         />
-        <span className="absolute top-2 left-2 bg-gray-900 text-yellow-300 text-xs font-bold px-2 py-1 rounded-md">{product.category}</span>
-        <button
-          onClick={handleWishlistToggle}
-          className="absolute top-2 right-2 p-2 rounded-full bg-gray-900/50 text-white hover:bg-gray-800 transition-colors"
-        >
-          <Heart className={`h-5 w-5 ${inWishlist ? 'text-red-500 fill-current' : ''}`} />
-        </button>
+      </Link>
+
+      {/* Product Info */}
+      <div className="flex-1">
+        <Link to={`/product/${product._id}`}>
+          <h2 className="text-lg font-semibold hover:underline">{product.name}</h2>
+        </Link>
+
+        <p className="text-gray-700 text-base mt-1 font-medium">
+          ₹{product.price}
+        </p>
+
+        {product.countInStock > 0 ? (
+          <p className="mt-1 text-green-600 font-medium">
+            In Stock ({product.countInStock})
+          </p>
+        ) : (
+          <p className="mt-1 text-red-600 font-medium">Out of Stock</p>
+        )}
       </div>
-      <div className="p-6 flex-grow flex flex-col">
-        <h3 className="text-xl font-bold text-white mb-2 cursor-pointer hover:text-blue-400" onClick={handleViewDetails}>{product.name}</h3>
-        <p className="text-2xl font-extrabold text-yellow-300 mb-4">₹{product.price.toLocaleString('en-IN')}</p>
-        <div className="mt-auto">
-          <button
-            onClick={handleAddToCart}
-            disabled={isAdding}
-            className="w-full px-4 py-2 bg-yellow-400 text-gray-900 font-bold rounded-md shadow-md hover:bg-yellow-300 transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70"
-          >
-            {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : "Add to Cart"}
-          </button>
-        </div>
+
+      {/* Action Buttons */}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        {/* Add to Cart Button */}
+        <button
+          onClick={() => addToCart(product, 1)}
+          disabled={product.countInStock === 0}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition
+            ${
+              product.countInStock === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+        >
+          <ShoppingCart size={18} />
+          Add
+        </button>
+
+        {/* Wishlist Button */}
+        <button
+          onClick={() =>
+            inWishlist
+              ? removeFromWishlist(product._id)
+              : addToWishlist(product)
+          }
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+        >
+          {inWishlist ? (
+            <HeartOff size={20} className="text-red-500" />
+          ) : (
+            <Heart size={20} className="text-gray-600" />
+          )}
+        </button>
       </div>
     </div>
   );
 };
+
+export default ProductCard;

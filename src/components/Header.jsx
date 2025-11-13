@@ -1,197 +1,212 @@
-import React, { useState } from 'react';
-import { 
-  Shield, ShoppingBag, X, Search, User, LogOut, Package, Heart, UserPlus 
-} from 'lucide-react';
-import { useCart } from '../context/AppProviders';
-import { useAuth } from '../context/AppProviders';
+// src/components/Header.jsx
+import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
+import { Menu, X, ShoppingCart, Heart, User } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useCart, useWishlist } from "../context/AppProviders";
 
-export const Header = ({ setPage, setSearchTerm }) => {
-  const { cartItemCount } = useCart();
-  const { isAuthenticated, user, logout } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const Header = () => {
+  const { user, logout } = useAuth();
+  const { cart } = useCart();
+  const { wishlist } = useWishlist();
 
-  const navLinks = [
-    { name: 'Home', page: 'home' },
-    { name: 'Products', page: 'products' },
-    { name: 'About', page: 'about' },
+  const [open, setOpen] = useState(false);
+
+  const navItems = [
+    { to: "/", label: "Home" },
+    { to: "/products", label: "Products" },
+    { to: "/wishlist", label: "Wishlist" },
+    { to: "/cart", label: "Cart" },
   ];
-  
-  const handleLogout = () => {
-    logout();
-    setPage('home');
-  };
 
   return (
-    <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-700">
-      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => setPage('home')}>
-            <Shield className="h-8 w-8 text-blue-400" />
-            <span className="ml-2 text-xl font-bold text-white hidden sm:block">EsportsCart</span>
-          </div>
+    <nav className="bg-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
 
-          <div className="hidden md:block flex-1 max-w-md mx-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search for gear..."
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => setPage('products')}
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
+        {/* Brand */}
+        <Link to="/" className="text-2xl font-bold text-blue-600">
+          E-Sports Cart
+        </Link>
 
-          <div className="hidden md:flex md:items-center md:space-x-1">
-            {navLinks.map((link) => (
-              <button
-                key={link.name}
-                onClick={() => setPage(link.page)}
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-              >
-                {link.name}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center">
-            {isAuthenticated ? (
-              <div className="hidden md:flex items-center space-x-2">
-                <button
-                  onClick={() => setPage('wishlist')}
-                  title="My Wishlist"
-                  className="p-2 rounded-full text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                >
-                  <Heart className="h-5 w-5" />
-                </button>
-                 <button
-                  onClick={() => setPage('orders')}
-                  title="My Orders"
-                  className="p-2 rounded-full text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                >
-                  <Package className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleLogout}
-                  title="Logout"
-                  className="p-2 rounded-full text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                >
-                  <LogOut className="h-5 w-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="hidden md:flex items-center space-x-1">
-                <button
-                  onClick={() => setPage('login')}
-                  className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                >
-                  <User className="h-5 w-5 mr-1" />
-                  Login
-                </button>
-                 <button
-                  onClick={() => setPage('signup')}
-                  className="flex items-center px-3 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-400 transition-colors"
-                >
-                  Sign Up
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setPage('cart')}
-              className="relative ml-2 p-2 rounded-full text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center gap-8">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `text-lg ${
+                  isActive ? "text-blue-600 font-semibold" : "text-gray-600"
+                } hover:text-blue-600`
+              }
             >
-              <ShoppingBag className="h-6 w-6" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
-                  {cartItemCount}
+              {item.label}
+            </NavLink>
+          ))}
+
+          {/* Icons */}
+          <div className="flex items-center gap-6">
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative">
+              <Heart size={22} className="text-gray-700" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {wishlist.length}
                 </span>
               )}
-            </button>
+            </Link>
 
-            <div className="ml-2 md:hidden">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
-              >
-                {isMobileMenuOpen ? <X className="block h-6 w-6" /> : <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>}
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+            {/* Cart */}
+            <Link to="/cart" className="relative">
+              <ShoppingCart size={22} className="text-gray-700" />
+              {cart.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {cart.length}
+                </span>
+              )}
+            </Link>
 
-      {/* Mobile menu */}
-      <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden border-t border-gray-700`}>
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-          <div className="relative mb-2">
-            <input
-              type="text"
-              placeholder="Search for gear..."
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setPage('products')}
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700"
-            />
-            <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          </div>
-        
-          {navLinks.map((link) => (
-            <button
-              key={link.name}
-              onClick={() => { setPage(link.page); setIsMobileMenuOpen(false); }}
-              className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-            >
-              {link.name}
-            </button>
-          ))}
-          
-          <div className="border-t border-gray-700 pt-3 mt-3">
-            {isAuthenticated ? (
-              <>
-                <button
-                  onClick={() => { setPage('wishlist'); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left flex items-center block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                >
-                  <Heart className="h-5 w-5 mr-2" />
-                  My Wishlist
-                </button>
-                <button
-                  onClick={() => { setPage('orders'); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left flex items-center block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                >
-                  <Package className="h-5 w-5 mr-2" />
-                  My Orders
-                </button>
-                 <button
-                  onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left flex items-center block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                >
-                  <LogOut className="h-5 w-5 mr-2" />
-                  Logout
-                </button>
-              </>
+            {/* User Menu */}
+            {user ? (
+              <div className="group relative cursor-pointer">
+                <User size={24} className="text-gray-700" />
+
+                <div className="absolute right-0 hidden group-hover:block bg-white shadow-lg rounded-lg p-3 mt-2 w-40">
+                  <Link
+                    to="/profile"
+                    className="block px-3 py-2 hover:bg-gray-100 rounded"
+                  >
+                    Profile
+                  </Link>
+
+                  <Link
+                    to="/orders"
+                    className="block px-3 py-2 hover:bg-gray-100 rounded"
+                  >
+                    My Orders
+                  </Link>
+
+                  <button
+                    onClick={logout}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-red-600"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
             ) : (
-              <>
-                <button
-                  onClick={() => { setPage('login'); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left flex items-center block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/login"
+                  className="text-gray-700 hover:text-blue-600 text-lg"
                 >
-                  <User className="h-5 w-5 mr-2" />
                   Login
-                </button>
-                <button
-                  onClick={() => { setPage('signup'); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left flex items-center block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                </Link>
+
+                <Link
+                  to="/signup"
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                  <UserPlus className="h-5 w-5 mr-2" />
                   Sign Up
-                </button>
-              </>
+                </Link>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Mobile Menu Button */}
+        <button className="md:hidden" onClick={() => setOpen(!open)}>
+          {open ? <X size={28} /> : <Menu size={28} />}
+        </button>
       </div>
-    </header>
+
+      {/* Mobile Menu */}
+      {open && (
+        <div className="md:hidden bg-white px-6 py-4 space-y-4 shadow-inner">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={() => setOpen(false)}
+              className="block text-lg text-gray-700 hover:text-blue-600"
+            >
+              {item.label}
+            </NavLink>
+          ))}
+
+          {/* Mobile Icons */}
+          <div className="flex items-center gap-6 py-2">
+            <Link to="/wishlist" onClick={() => setOpen(false)} className="relative">
+              <Heart size={22} className="text-gray-700" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {wishlist.length}
+                </span>
+              )}
+            </Link>
+
+            <Link to="/cart" onClick={() => setOpen(false)} className="relative">
+              <ShoppingCart size={22} className="text-gray-700" />
+              {cart.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {cart.length}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* Mobile User Auth */}
+          {user ? (
+            <>
+              <Link
+                to="/profile"
+                onClick={() => setOpen(false)}
+                className="block text-gray-700 hover:text-blue-600 text-lg"
+              >
+                Profile
+              </Link>
+
+              <Link
+                to="/orders"
+                onClick={() => setOpen(false)}
+                className="block text-gray-700 hover:text-blue-600 text-lg"
+              >
+                My Orders
+              </Link>
+
+              <button
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="text-red-600 text-lg"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="block text-gray-700 hover:text-blue-600 text-lg"
+              >
+                Login
+              </Link>
+
+              <Link
+                to="/signup"
+                onClick={() => setOpen(false)}
+                className="block bg-blue-600 text-white px-4 py-2 rounded text-center"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </nav>
   );
 };
+
+export default Header;
