@@ -11,6 +11,9 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
 
+// ==============================
+// ✅ CONNECT DATABASE
+// ==============================
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
@@ -24,37 +27,57 @@ connectDB();
 
 const app = express();
 
+// ==============================
+// ✅ CORS SETUP (Render + Vercel + Localhost)
+// ==============================
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN,
-  'http://localhost:5173'
+  process.env.CLIENT_ORIGIN, // from your .env on Render
+  'https://esports-cart.vercel.app', // main production frontend
+  'https://esports-cart-ea54zx6px-arjun2k01s-projects.vercel.app', // preview deployment
+  'http://localhost:5173', // local development
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked by CORS: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`🚫 Blocked by CORS: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 
+// ==============================
+// ✅ MIDDLEWARE
+// ==============================
 app.use(express.json());
 
+// ==============================
+// ✅ TEST ROUTE
+// ==============================
 app.get('/api/test', (req, res) => res.json({ message: '✅ Backend is running!' }));
 
+// ==============================
+// ✅ ROUTES
+// ==============================
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/ai', aiRoutes);
 
-
-
+// ==============================
+// ✅ ERROR HANDLERS
+// ==============================
 app.use(notFound);
 app.use(errorHandler);
 
+// ==============================
+// ✅ START SERVER
+// ==============================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
