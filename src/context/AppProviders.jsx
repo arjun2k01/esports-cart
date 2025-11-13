@@ -15,12 +15,13 @@ axios.defaults.baseURL = API_BASE_URL;
 // ======================
 // ✅ AUTH CONTEXT
 // ======================
-const AuthContext = createContext();
+export const AuthContext = createContext();
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = usePersistentState('esportsUser', null);
   const isAuthenticated = !!user;
 
-  // ✅ Safe optional chaining (fixes "Cannot read property 'token'")
+  // ✅ Safe optional chaining
   useEffect(() => {
     if (user?.token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
@@ -66,16 +67,16 @@ export const AuthProvider = ({ children }) => {
 };
 
 // ======================
-// ✅ GLOBAL APP CONTEXT
+// ✅ APP PROVIDER WRAPPER
 // ======================
-export const AppContext = createContext({
-  apiBaseUrl: API_BASE_URL,
-});
+export const AppContext = createContext({ apiBaseUrl: API_BASE_URL });
 
-export default function AppProviders({ children }) {
+export const AppProviders = ({ children }) => {
   return (
     <AppContext.Provider value={{ apiBaseUrl: API_BASE_URL }}>
       <AuthProvider>{children}</AuthProvider>
     </AppContext.Provider>
   );
-}
+};
+
+export default AppProviders;
