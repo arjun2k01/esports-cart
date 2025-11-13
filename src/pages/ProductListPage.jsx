@@ -10,7 +10,7 @@ const ProductListPage = () => {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useError("");
+  const [error, setError] = useState("");  // ✅ FIXED
 
   const fetchProducts = async () => {
     try {
@@ -18,8 +18,9 @@ const ProductListPage = () => {
       setProducts(res.data);
     } catch (err) {
       setError("Failed to load products");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
