@@ -5,7 +5,7 @@ const productSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      text: true,
+      // ❌ removed text: true
     },
     image: {
       type: String,
