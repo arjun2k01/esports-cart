@@ -1,69 +1,90 @@
-import React, { useEffect } from 'react';
-import { useOrders } from '../context/AppProviders';
-import { Package, Loader2 } from 'lucide-react';
+// src/pages/OrdersPage.jsx
+import { useEffect, useState } from "react";
+import axios from "../lib/axios";
+import { Link } from "react-router-dom";
 
-export const OrdersPage = () => {
-  // Get orders, loading state, and fetch function from context
-  const { orders, loading, getMyOrders } = useOrders();
+const OrdersPage = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Fetch orders when the page loads
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("/orders/my-orders");
+      setOrders(res.data);
+    } catch (err) {
+      setError("Failed to load your orders");
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    getMyOrders();
-    // We only want this to run once when the component mounts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchOrders();
   }, []);
 
-  if (loading && orders.length === 0) {
+  if (loading)
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+      <div className="p-6 text-center">Loading your orders...</div>
+    );
+
+  if (error)
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+
+  if (orders.length === 0)
+    return (
+      <div className="p-6 text-center">
+        <h2 className="text-2xl font-semibold mb-3">
+          You have no orders yet.
+        </h2>
+        <Link
+          to="/"
+          className="bg-blue-600 text-white px-6 py-3 rounded"
+        >
+          Shop Now
+        </Link>
       </div>
     );
-  }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-white text-center mb-8">My Orders</h1>
-        {orders.length === 0 ? (
-          <div className="bg-gray-800 p-8 md:p-12 rounded-lg shadow-xl text-center">
-            <Package className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-            <p className="text-lg text-gray-300">You haven't placed any orders yet.</p>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">My Orders</h1>
+
+      <div className="space-y-4">
+        {orders.map((order) => (
+          <div
+            key={order._id}
+            className="p-5 bg-white shadow rounded flex justify-between items-center"
+          >
+            <div>
+              <p className="font-semibold text-lg">
+                Order #{order._id.slice(-6)}
+              </p>
+              <p className="text-gray-600">
+                {new Date(order.createdAt).toLocaleString()}
+              </p>
+              <p className="text-gray-700 mt-1">
+                Total: <span className="font-semibold">₹{order.totalPrice}</span>
+              </p>
+              <p
+                className={`mt-1 font-semibold ${
+                  order.isDelivered ? "text-green-600" : "text-yellow-600"
+                }`}
+              >
+                {order.isDelivered ? "Delivered" : "Pending"}
+              </p>
+            </div>
+
+            <Link
+              to={`/order/${order._id}`}
+              className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition"
+            >
+              View Details
+            </Link>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {orders.map(order => (
-              // Use the MongoDB _id as the key
-              <div key={order._id} className="bg-gray-800 p-6 rounded-lg shadow-xl">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 pb-4 border-b border-gray-700">
-                  <div>
-                    <p className="text-xl font-bold text-white">Order ID: {order._id}</p>
-                    <p className="text-sm text-gray-400">Date: {new Date(order.createdAt).toLocaleDateString('en-IN')}</p>
-                  </div>
-                  <div className="text-right">
-                     <p className="text-2xl font-bold text-yellow-300 mt-2 sm:mt-0">Total: ₹{order.totalPrice.toLocaleString('en-IN')}</p>
-                     <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-green-900 bg-green-200 rounded">
-                        {order.isPaid ? 'Paid' : 'Unpaid'}
-                     </span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {order.orderItems.map(item => (
-                    // Use the product _id as the key
-                    <div key={item.product} className="flex items-center">
-                      <img src={item.image} alt={item.name} className="w-16 h-16 rounded-md object-cover mr-4" />
-                      <div>
-                        <p className="font-medium text-white">{item.name}</p>
-                        <p className="text-sm text-gray-400">Qty: {item.qty} | Price: ₹{item.price.toLocaleString('en-IN')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
 };
+
+export default OrdersPage;
