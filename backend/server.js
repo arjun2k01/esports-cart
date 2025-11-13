@@ -2,40 +2,64 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import productRoutes from "./routes/productRoutes.js";
+import productRoutes from './routes/productRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
-import cartRoutes from './routes/cartRoutes.js'; // NEW: Import
+import cartRoutes from './routes/cartRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
 
+// --- Connect to MongoDB ---
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
+    console.error(`❌ Error connecting to MongoDB: ${error.message}`);
     process.exit(1);
   }
 };
-
 connectDB();
 
 const app = express();
 
-app.use(cors());
+// --- CORS Setup ---
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN,     // Vercel frontend
+  'http://localhost:5173'        // Local dev (Vite)
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked by CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// --- Middleware ---
 app.use(express.json());
 
-app.get('/api/test', (req, res) => res.json({ message: 'Backend is running!' }));
+// --- Test Route ---
+app.get('/api/test', (req, res) => res.json({ message: '✅ Backend is running!' }));
 
+// --- API Routes ---
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/cart', cartRoutes); // NEW: Use cart routes
+app.use('/api/cart', cartRoutes);
 
+// --- Error Handling ---
 app.use(notFound);
 app.use(errorHandler);
 
+// --- Server Start ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
