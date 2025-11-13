@@ -1,74 +1,80 @@
-import React, { useState } from 'react';
-import AppProviders from './context/AppProviders'; // Keeps Cart, Product, etc.
-import { AuthProvider } from './context/AuthContext'; // New dedicated Auth provider
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
+// src/App.jsx
+import React from "react";
+import { Routes, Route } from "react-router-dom";
 
-// Import Pages
-import { HomePage } from './pages/HomePage';
-import { ProductListPage } from './pages/ProductListPage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { CartPage } from './pages/CartPage';
-import { AboutPage } from './pages/AboutPage';
-import { LoginPage } from './pages/LoginPage';
-import { SignUpPage } from './pages/SignUpPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
-import { OrdersPage } from './pages/OrdersPage';
-import { WishlistPage } from './pages/WishListPage';
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
-function MainContent() {
-  const [page, setPage] = useState('home');
-  const [selectedProductId, setSelectedProductId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+// Pages
+import HomePage from "./pages/HomePage";
+import ProductListPage from "./pages/ProductListPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import CartPage from "./pages/CartPage";
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrdersPage from "./pages/OrdersPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
+import WishListPage from "./pages/WishListPage";
+import ProfilePage from "./pages/ProfilePage";
+import NotFoundPage from "./pages/NotFoundPage";
 
-  const renderPage = () => {
-    switch (page) {
-      case 'home':
-        return <HomePage setPage={setPage} setSelectedProductId={setSelectedProductId} />;
-      case 'products':
-        return <ProductListPage setPage={setPage} setSelectedProductId={setSelectedProductId} searchTerm={searchTerm} />;
-      case 'productDetail':
-        return <ProductDetailPage productId={selectedProductId} setPage={setPage} />;
-      case 'cart':
-        return <CartPage setPage={setPage} />;
-      case 'about':
-        return <AboutPage />;
-      case 'login':
-        return <LoginPage setPage={setPage} />;
-      case 'signup':
-        return <SignUpPage setPage={setPage} />;
-      case 'checkout':
-        return <CheckoutPage setPage={setPage} />;
-      case 'orderConfirmation':
-        return <OrderConfirmationPage setPage={setPage} />;
-      case 'orders':
-        return <OrdersPage />;
-      case 'wishlist':
-        return <WishlistPage setPage={setPage} setSelectedProductId={setSelectedProductId} />;
-      default:
-        return <HomePage setPage={setPage} setSelectedProductId={setSelectedProductId} />;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white font-inter antialiased">
-      <Header setPage={setPage} setSearchTerm={setSearchTerm} />
-      <main>
-        {renderPage()}
-      </main>
-      <Footer />
-    </div>
-  );
-}
+// Auth
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
-    // AuthProvider is at the top level
-    <AuthProvider>
-      <AppProviders>
-        <MainContent />
-      </AppProviders>
-    </AuthProvider>
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+
+      <Header />
+
+      <main className="flex-1">
+        <Routes>
+
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/products" element={<ProductListPage />} />
+          <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<WishListPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+
+          {/* Protected Routes */}
+          <Route path="/checkout" element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }/>
+
+          <Route path="/orders" element={
+            <ProtectedRoute>
+              <OrdersPage />
+            </ProtectedRoute>
+          }/>
+
+          <Route path="/order/:id" element={
+            <ProtectedRoute>
+              <OrderDetailPage />
+            </ProtectedRoute>
+          }/>
+
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }/>
+
+          {/* 404 */}
+          <Route path="*" element={<NotFoundPage />} />
+
+        </Routes>
+      </main>
+
+      <Footer/>
+
+    </div>
   );
 }
