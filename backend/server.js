@@ -1,77 +1,22 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import helmet from "helmet";
-import xss from "xss-clean";
-import mongoSanitize from "express-mongo-sanitize";
-import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
-import connectDB from "./config/db.js";
+// src/lib/axios.js
+import axios from "axios";
 
-import userRoutes from "./routes/userRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import aiRoutes from "./routes/aiRoutes.js";
-
-dotenv.config();
-
-// Connect to DB
-connectDB();
-
-const app = express();
-
-// ⭐ REQUIRED FOR RENDER / PROXY ENVIRONMENTS ⭐
-app.set("trust proxy", 1);
-
-// ---------- SECURITY ----------
-app.use(helmet());
-app.use(xss());
-app.use(mongoSanitize());
-app.use(cookieParser());
-
-// ---------- RATE LIMIT ----------
-app.use(
-  "/api",
-  rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 100,
-    message: "Too many requests. Try again later.",
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
-
-// ---------- CORS ----------
-app.use(
-  cors({
-    origin: process.env.CLIENT_ORIGIN?.split(","), // Vercel domain
-    credentials: true,
-  })
-);
-
-// ---------- BODY PARSING ----------
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: false }));
-
-// ---------- API ROUTES ----------
-app.use("/api/users", userRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/ai", aiRoutes);
-
-// ---------- ROOT ----------
-app.get("/", (req, res) => {
-  res.send("API is running...");
+const axiosInstance = axios.create({
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    "https://esports-cart.onrender.com/api", // 🔥 correct backend URL
+  withCredentials: true, // required for cookies
 });
 
-// ---------- ERROR HANDLER ----------
-app.use((err, req, res, next) => {
-  console.error("ERROR:", err.message);
-  res.status(500).json({ message: err.message || "Server error" });
-});
-
-// ---------- START SERVER ----------
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`Server running in ${process.env.NODE_ENV} on port ${PORT}`)
+// Auto-handle 401
+axiosInstance.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response && err.response.status === 401) {
+      console.warn("Unauthorized: redirecting to login...");
+    }
+    return Promise.reject(err);
+  }
 );
+
+export default axiosInstance;
