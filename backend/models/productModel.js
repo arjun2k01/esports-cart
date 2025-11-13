@@ -1,20 +1,15 @@
 import mongoose from 'mongoose';
 
-// We define the structure of a product in our database
 const productSchema = new mongoose.Schema(
   {
-    // We keep your numeric ID for frontend compatibility
-    id: {
-      type: Number,
+    // Removed manual 'id' field to use MongoDB's native _id
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
-      unique: true,
+      ref: 'User',
     },
     name: {
       type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
       required: true,
     },
     image: {
@@ -29,9 +24,18 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    price: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    countInStock: {
+      type: Number,
+      required: true,
+      default: 10, // Default stock for now
+    },
   },
   {
-    // Adds `createdAt` and `updatedAt` fields automatically
     timestamps: true,
   }
 );

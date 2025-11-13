@@ -1,87 +1,15 @@
-// src/context/AppProviders.jsx
-import React, {
-  useEffect,
-  createContext,
-  useState,
-  useMemo,
-  useContext,
-} from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { ToastContainer } from "../components/ToastContainer";
+import { AuthProvider } from "./AuthContext"; // Import the new separate provider
 
-// ======================
-// ✅ API BASE URL SETUP
-// ======================
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://esports-cart.onrender.com/api";
+// API BASE URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://esports-cart.onrender.com/api";
 axios.defaults.baseURL = API_BASE_URL;
 
-// ======================
-// ✅ AUTH CONTEXT
-// ======================
-export const AuthContext = createContext();
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = usePersistentState("esportsUser", null);
-  const isAuthenticated = !!user;
-
-  useEffect(() => {
-    if (user?.token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [user]);
-
-  const login = async (email, password) => {
-    try {
-      const { data } = await axios.post("/users/login", { email, password });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
-    }
-  };
-
-  const signup = async (name, email, password) => {
-    try {
-      const { data } = await axios.post("/users/register", {
-        name,
-        email,
-        password,
-      });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
-    }
-  };
-
-  const logout = () => setUser(null);
-
-  return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, user, login, logout, signup }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
-
-// ======================
-// ✅ PRODUCT CONTEXT
-// ======================
+// --- PRODUCT CONTEXT ---
 const ProductContext = createContext();
-
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +24,7 @@ export const ProductProvider = ({ children }) => {
         setError(null);
       } catch (err) {
         setError("Failed to fetch products");
-        console.error("Error fetching products:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -110,24 +38,21 @@ export const ProductProvider = ({ children }) => {
     </ProductContext.Provider>
   );
 };
-
 export const useProducts = () => useContext(ProductContext);
 
-// ======================
-// ✅ CART CONTEXT
-// ======================
-const CartContext = React.createContext();
-
+// --- CART CONTEXT ---
+const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
   const addToCart = (product, quantity = 1) => {
+    // Use _id specifically
     const id = product._id || product.id;
     setCart((prev) => {
-      const existing = prev.find((item) => item._id === id);
+      const existing = prev.find((item) => (item._id || item.id) === id);
       if (existing) {
         return prev.map((item) =>
-          item._id === id
+          (item._id || item.id) === id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -137,52 +62,30 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (id) =>
-    setCart((prev) => prev.filter((item) => item._id !== id));
+    setCart((prev) => prev.filter((item) => (item._id || item.id) !== id));
 
   const clearCart = () => setCart([]);
 
-  const cartTotal = useMemo(
-    () => cart.reduce((sum, i) => sum + i.price * i.quantity, 0),
-    [cart]
-  );
-
-  const cartItemCount = useMemo(
-    () => cart.reduce((sum, i) => sum + i.quantity, 0),
-    [cart]
-  );
+  const cartTotal = useMemo(() => cart.reduce((sum, i) => sum + i.price * i.quantity, 0), [cart]);
+  const cartItemCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        addToCart,
-        removeFromCart,
-        clearCart,
-        cartTotal,
-        cartItemCount,
-      }}
-    >
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartTotal, cartItemCount }}>
       {children}
     </CartContext.Provider>
   );
 };
-
 export const useCart = () => useContext(CartContext);
 
-// ======================
-// ✅ WISHLIST CONTEXT
-// ======================
+// --- WISHLIST CONTEXT ---
 const WishlistContext = createContext();
-
 export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = usePersistentState("esportsWishlist", []);
 
   const addToWishlist = (product) => {
     const id = product._id || product.id;
     setWishlist((prev) =>
-      prev.some((item) => (item._id || item.id) === id)
-        ? prev
-        : [...prev, product]
+      prev.some((item) => (item._id || item.id) === id) ? prev : [...prev, product]
     );
   };
 
@@ -193,34 +96,23 @@ export const WishlistProvider = ({ children }) => {
     wishlist.some((item) => (item._id || item.id) === id);
 
   return (
-    <WishlistContext.Provider
-      value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist }}
-    >
+    <WishlistContext.Provider value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist }}>
       {children}
     </WishlistContext.Provider>
   );
 };
-
 export const useWishlist = () => useContext(WishlistContext);
 
-// ======================
-// ✅ TOAST CONTEXT
-// ======================
+// --- TOAST CONTEXT ---
 const ToastContext = createContext();
-
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
-
   const showToast = (message, type = "success") => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   };
-
-  const removeToast = (id) =>
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -229,17 +121,12 @@ export const ToastProvider = ({ children }) => {
     </ToastContext.Provider>
   );
 };
-
 export const useToast = () => useContext(ToastContext);
 
-// ======================
-// ✅ REVIEW CONTEXT
-// ======================
+// --- REVIEW CONTEXT ---
 const ReviewContext = createContext();
-
 export const ReviewProvider = ({ children }) => {
   const [reviews, setReviews] = usePersistentState("esportsReviews", {});
-
   const addReview = (productId, review) => {
     const newReview = { ...review, id: Date.now(), date: new Date().toISOString() };
     setReviews((prev) => {
@@ -247,23 +134,17 @@ export const ReviewProvider = ({ children }) => {
       return { ...prev, [productId]: [newReview, ...list] };
     });
   };
-
   const getReviewsForProduct = (productId) => reviews[productId] || [];
-
   return (
     <ReviewContext.Provider value={{ addReview, getReviewsForProduct }}>
       {children}
     </ReviewContext.Provider>
   );
 };
-
 export const useReviews = () => useContext(ReviewContext);
 
-// ======================
-// ✅ ORDER CONTEXT (NEW)
-// ======================
+// --- ORDER CONTEXT ---
 const OrderContext = createContext();
-
 export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -301,32 +182,9 @@ export const OrderProvider = ({ children }) => {
     </OrderContext.Provider>
   );
 };
-
 export const useOrders = () => useContext(OrderContext);
 
-// ======================
-// ✅ APP PROVIDER WRAPPER
-// ======================
-export const AppContext = createContext({ apiBaseUrl: API_BASE_URL });
-
-export const AppProviders = ({ children }) => {
-  return (
-    <AppContext.Provider value={{ apiBaseUrl: API_BASE_URL }}>
-      <AuthProvider>
-        <ProductProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <ReviewProvider>
-                <OrderProvider>
-                  <ToastProvider>{children}</ToastProvider>
-                </OrderProvider>
-              </ReviewProvider>
-            </WishlistProvider>
-          </CartProvider>
-        </ProductProvider>
-      </AuthProvider>
-    </AppContext.Provider>
-  );
-};
+// Export Auth from here so other files don't break if they import from AppProviders
+export { useAuth } from "./AuthContext";
 
 export default AppProviders;
