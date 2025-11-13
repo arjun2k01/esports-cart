@@ -1,152 +1,258 @@
-import React, { useState } from 'react';
-import { useCart, useOrders, useToast, useAuth } from '../context/AppProviders';
-import { validateEmail } from '../lib/validation';
-import { FormError, Input, Button } from '../components/Common';
-import { CreditCard, Loader2 } from 'lucide-react';
+// src/pages/CheckoutPage.jsx
 
-export const CheckoutPage = ({ setPage }) => {
-  const { cart, cartTotal, clearCart } = useCart();
-  const { createOrder } = useOrders(); // Use createOrder from context
-  const { showToast } = useToast();
-  const { user } = useAuth();
-  
-  const [form, setForm] = useState({ 
-    name: user?.name || '', 
-    email: user?.email || '', 
-    address: '', 
-    card: '1234 5678 9012 3456', 
-    expiry: '12/28', 
-    cvc: '123' 
-  });
-  const [errors, setErrors] = useState({});
-  const [isProcessing, setIsProcessing] = useState(false); // Loading state for the button
+import React, { memo, Suspense } from 'react'
+import { useForm } from 'react-hook-form'
+import { useCart, useOrders, useToast, useAuth } from '../context/AppProviders'
+import { CreditCard, Loader2 } from 'lucide-react'
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.id]: e.target.value });
-  };
-  
-  const validate = () => {
-    const newErrors = {};
-    if (!form.name) newErrors.name = "Name is required.";
-    if (!validateEmail(form.email)) newErrors.email = "Valid email is required.";
-    if (!form.address) newErrors.address = "Address is required.";
-    if (form.card.length < 19) newErrors.card = "Invalid card number.";
-    if (!form.expiry.match(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/)) newErrors.expiry = "Invalid expiry (MM/YY).";
-    if (form.cvc.length < 3) newErrors.cvc = "Invalid CVC.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+const OrderSummary = React.lazy(() => import('../components/OrderSummary'))
 
-  const handlePlaceOrder = async (e) => {
-    e.preventDefault();
-    if (!validate()) {
-      showToast('Please fix the errors in the form.', 'error');
-      return;
+// Memoize cart item render for performance
+const CartItems = memo(({ cart }) => (
+  <div
+    className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-2"
+    aria-label="Your cart items"
+  >
+    {cart.map(item => (
+      <div
+        key={item._id || item.id}
+        className="flex justify-between items-center text-gray-300"
+        tabIndex={0}
+        aria-label={`Product ${item.name}, Quantity ${item.quantity}, Price ₹${(item.price * item.quantity).toLocaleString('en-IN')}`}
+      >
+        <div className="flex items-center">
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-12 h-12 rounded-md object-cover mr-3"
+          />
+          <div>
+            <p className="font-medium text-white">{item.name}</p>
+            <p className="text-sm">Qty: {item.quantity}</p>
+          </div>
+        </div>
+        <span className="font-medium text-white">
+          ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+        </span>
+      </div>
+    ))}
+  </div>
+))
+
+export default function CheckoutPage({ setPage }) {
+  const { cart, cartTotal, clearCart } = useCart()
+  const { createOrder } = useOrders()
+  const { showToast } = useToast()
+  const { user } = useAuth()
+
+  // RHF configuration
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    defaultValues: {
+      name: user?.name || '',
+      email: user?.email || '',
+      address: '',
+      card: '1234 5678 9012 3456',
+      expiry: '12/28',
+      cvc: '123'
     }
-    
-    setIsProcessing(true);
+  })
 
-    // Create the order object for the backend
+  // Accessible labels
+  const labels = {
+    name: 'Full Name',
+    email: 'Email Address',
+    address: 'Shipping Address',
+    card: 'Card Number',
+    expiry: 'Card Expiry',
+    cvc: 'Card CVC'
+  }
+
+  const onSubmit = async data => {
     const orderData = {
       orderItems: cart,
-      shippingAddress: { address: form.address },
+      shippingAddress: { address: data.address },
       paymentMethod: 'MockCreditCard',
       totalPrice: cartTotal,
-    };
-
-    // Call the new createOrder API
-    const result = await createOrder(orderData);
-    
-    setIsProcessing(false);
-
-    if (result.success) {
-      clearCart();
-      showToast('Order placed successfully!');
-      setPage('orderConfirmation');
-    } else {
-      // Show the error from the backend
-      showToast(result.error || 'Failed to place order', 'error');
     }
-  };
+    const result = await createOrder(orderData)
+    if (result.success) {
+      clearCart()
+      showToast('Order placed successfully!')
+      setPage('orderConfirmation')
+    } else {
+      showToast(result.error || 'Failed to place order', 'error')
+    }
+  }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn" role="main">
       <h1 className="text-4xl font-extrabold text-white text-center mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <form onSubmit={handlePlaceOrder} id="checkout-form" className="lg:col-span-2 bg-gray-800 p-8 rounded-lg shadow-xl space-y-4">
-          <h2 className="text-2xl font-bold text-white mb-4">Shipping Information</h2>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          id="checkout-form"
+          className="lg:col-span-2 bg-gray-800 p-8 rounded-lg shadow-xl space-y-4"
+          aria-labelledby="checkout-heading"
+        >
+          <h2 id="checkout-heading" className="text-2xl font-bold text-white mb-4">Shipping Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="name">Full Name</label>
-              <Input type="text" id="name" value={form.name} onChange={handleChange} />
-              <FormError message={errors.name} />
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">
+                {labels.name}
+              </label>
+              <input
+                {...register('name', { required: "Name is required" })}
+                id="name"
+                type="text"
+                className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+                aria-invalid={!!errors.name}
+                aria-describedby="name-error"
+                autoComplete="name"
+              />
+              {errors.name && (
+                <span id="name-error" className="text-red-400 text-xs">{errors.name.message}</span>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="email">Email</label>
-              <Input type="email" id="email" value={form.email} onChange={handleChange} />
-              <FormError message={errors.email} />
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                {labels.email}
+              </label>
+              <input
+                {...register('email', {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^\S+@\S+\.\S+$/,
+                    message: "Enter a valid email"
+                  }
+                })}
+                id="email"
+                type="email"
+                className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+                aria-invalid={!!errors.email}
+                aria-describedby="email-error"
+                autoComplete="email"
+              />
+              {errors.email && (
+                <span id="email-error" className="text-red-400 text-xs">{errors.email.message}</span>
+              )}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="address">Address</label>
-            <Input type="text" id="address" value={form.address} onChange={handleChange} placeholder="Noida Sector 27" />
-            <FormError message={errors.address} />
+            <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-1">
+              {labels.address}
+            </label>
+            <input
+              {...register('address', { required: "Address is required" })}
+              id="address"
+              type="text"
+              className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+              aria-invalid={!!errors.address}
+              aria-describedby="address-error"
+              autoComplete="address"
+              placeholder="Noida Sector 27"
+            />
+            {errors.address && (
+              <span id="address-error" className="text-red-400 text-xs">{errors.address.message}</span>
+            )}
           </div>
-          
           <h2 className="text-2xl font-bold text-white mb-4 pt-6 border-t border-gray-700">Payment Details</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="card">Card Number (Mock)</label>
-            <Input type="text" id="card" value={form.card} onChange={handleChange} />
-            <FormError message={errors.card} />
+            <label htmlFor="card" className="block text-sm font-medium text-gray-300 mb-1">
+              {labels.card}
+            </label>
+            <input
+              {...register('card', {
+                required: "Card number is required",
+                minLength: { value: 19, message: "Invalid card number" }
+              })}
+              id="card"
+              type="text"
+              className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+              aria-invalid={!!errors.card}
+              aria-describedby="card-error"
+              inputMode="numeric"
+              autoComplete="cc-number"
+            />
+            {errors.card && (
+              <span id="card-error" className="text-red-400 text-xs">{errors.card.message}</span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="expiry">Expiry (MM/YY)</label>
-              <Input type="text" id="expiry" value={form.expiry} onChange={handleChange} />
-              <FormError message={errors.expiry} />
+              <label htmlFor="expiry" className="block text-sm font-medium text-gray-300 mb-1">
+                {labels.expiry}
+              </label>
+              <input
+                {...register('expiry', {
+                  required: "Expiry is required",
+                  pattern: {
+                    value: /^(0[1-9]|1[0-2])\/([0-9]{2})$/,
+                    message: "Invalid expiry (MM/YY)"
+                  }
+                })}
+                id="expiry"
+                type="text"
+                className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+                aria-invalid={!!errors.expiry}
+                aria-describedby="expiry-error"
+                autoComplete="cc-exp"
+                placeholder="MM/YY"
+              />
+              {errors.expiry && (
+                <span id="expiry-error" className="text-red-400 text-xs">{errors.expiry.message}</span>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="cvc">CVC</label>
-              <Input type="text" id="cvc" value={form.cvc} onChange={handleChange} />
-              <FormError message={errors.cvc} />
+              <label htmlFor="cvc" className="block text-sm font-medium text-gray-300 mb-1">
+                {labels.cvc}
+              </label>
+              <input
+                {...register('cvc', {
+                  required: "CVC is required",
+                  minLength: { value: 3, message: "Invalid CVC" }
+                })}
+                id="cvc"
+                type="text"
+                className="w-full rounded focus:ring-2 focus:ring-yellow-400 bg-gray-700 p-2"
+                aria-invalid={!!errors.cvc}
+                aria-describedby="cvc-error"
+                inputMode="numeric"
+                autoComplete="cc-csc"
+              />
+              {errors.cvc && (
+                <span id="cvc-error" className="text-red-400 text-xs">{errors.cvc.message}</span>
+              )}
             </div>
           </div>
+          <button
+            type="submit"
+            className="mt-6 w-full bg-yellow-400 text-gray-900 text-lg hover:bg-yellow-300 flex items-center justify-center gap-2 py-2 rounded focus:outline-yellow-400 aria-busy:opacity-70"
+            disabled={isSubmitting}
+            aria-label="Place Order"
+          >
+            {isSubmitting ? (
+              <Loader2 className="animate-spin h-5 w-5" />
+            ) : (
+              <>
+                <CreditCard className="h-5 w-5" /> Place Order
+              </>
+            )}
+          </button>
         </form>
-
         <div className="lg:col-span-1">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl sticky top-24">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl sticky top-24" aria-label="Order summary section">
             <h2 className="text-2xl font-bold text-white mb-6 border-b border-gray-700 pb-4">Your Order</h2>
-            <div className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-2">
-              {cart.map(item => (
-                <div key={item._id || item.id} className="flex justify-between items-center text-gray-300">
-                  <div className="flex items-center">
-                    <img src={item.image} alt={item.name} className="w-12 h-12 rounded-md object-cover mr-3" />
-                    <div>
-                      <p className="font-medium text-white">{item.name}</p>
-                      <p className="text-sm">Qty: {item.quantity}</p>
-                    </div>
-                  </div>
-                  <span className="font-medium text-white">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-gray-700 pt-4 space-y-4">
-              <div className="flex justify-between text-white text-xl font-bold">
-                <span>Total</span>
-                <span>₹{cartTotal.toLocaleString('en-IN')}</span>
-              </div>
-              <Button
-                type="submit"
-                form="checkout-form"
-                className="w-full bg-yellow-400 text-gray-900 text-lg hover:bg-yellow-300 flex items-center gap-2"
-                disabled={isProcessing}
-              >
-                {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : <><CreditCard className="h-5 w-5" /> Place Order</>}
-              </Button>
-            </div>
+            <CartItems cart={cart} />
+            <Suspense fallback={<div>Loading Order Summary...</div>}>
+              <OrderSummary cartTotal={cartTotal} />
+            </Suspense>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,55 +1,58 @@
-import React, { createContext, useContext, useEffect } from 'react';
-import axios from 'axios';
-import { usePersistentState } from '../hooks/usePersistentState';
+// src/context/AuthContext.jsx
+import { createContext, useContext, useEffect, useState } from "react";
+import axios from "../lib/axios";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = usePersistentState("esportsUser", null);
-  const isAuthenticated = !!user;
+  const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  // Fetch user on first load (cookie auth)
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get("/users/profile");
+      setUser(res.data);
+    } catch {
+      setUser(null);
+    }
+    setLoadingUser(false);
+  };
 
   useEffect(() => {
-    if (user?.token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [user]);
+    fetchUser();
+  }, []);
 
   const login = async (email, password) => {
-    try {
-      const { data } = await axios.post("/users/login", { email, password });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
-    }
+    const res = await axios.post("/users/login", { email, password });
+    setUser(res.data);
   };
 
-  const signup = async (name, email, password) => {
-    try {
-      const { data } = await axios.post("/users/register", {
-        name,
-        email,
-        password,
-      });
-      setUser(data);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
-    }
+  const register = async (name, email, password) => {
+    const res = await axios.post("/users/register", {
+      name,
+      email,
+      password,
+    });
+    setUser(res.data);
   };
 
-  const logout = () => setUser(null);
+  const logout = async () => {
+    await axios.post("/users/logout");
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, signup }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loadingUser,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

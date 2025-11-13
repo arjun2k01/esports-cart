@@ -1,52 +1,57 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const orderSchema = mongoose.Schema(
+const orderItemSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    qty: { type: Number, required: true },
+    image: { type: String, required: true },
+    price: { type: Number, required: true },
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Product",
+    },
+  },
+  { _id: false }
+);
+
+const orderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: 'User',
+      ref: "User",
     },
-    orderItems: [
-      {
-        name: { type: String, required: true },
-        qty: { type: Number, required: true },
-        image: { type: String, required: true },
-        price: { type: Number, required: true },
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: 'Product',
-        },
-      },
-    ],
+    orderItems: [orderItemSchema],
+
     shippingAddress: {
       address: { type: String, required: true },
+      city: { type: String, required: true },
+      postalCode: { type: String, required: true },
+      country: { type: String, required: true },
     },
+
     paymentMethod: {
       type: String,
       required: true,
+      enum: ["COD", "Stripe", "Razorpay"],
+      default: "COD",
     },
+
     totalPrice: {
       type: Number,
       required: true,
-      default: 0.0,
     },
-    isPaid: {
+
+    isDelivered: {
       type: Boolean,
-      required: true,
-      default: true, // We assume paid for this demo
+      default: false,
     },
-    paidAt: {
-      type: Date,
-      default: Date.now,
-    },
+    deliveredAt: Date,
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.model("Order", orderSchema);
 
 export default Order;
