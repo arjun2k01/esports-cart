@@ -8,7 +8,6 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
 
-// Routes
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
@@ -20,6 +19,9 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// ⭐ REQUIRED FOR RENDER / PROXY ENVIRONMENTS ⭐
+app.set("trust proxy", 1);
 
 // ---------- SECURITY ----------
 app.use(helmet());
@@ -34,13 +36,15 @@ app.use(
     windowMs: 1 * 60 * 1000,
     max: 100,
     message: "Too many requests. Try again later.",
+    standardHeaders: true,
+    legacyHeaders: false,
   })
 );
 
 // ---------- CORS ----------
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN?.split(","),
+    origin: process.env.CLIENT_ORIGIN?.split(","), // Vercel domain
     credentials: true,
   })
 );
@@ -55,8 +59,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/ai", aiRoutes);
 
-// ---------- REMOVE FRONTEND SERVING ----------
-// Because frontend is deployed on Vercel
+// ---------- ROOT ----------
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
