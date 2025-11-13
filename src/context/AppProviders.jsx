@@ -233,7 +233,7 @@ export const ToastProvider = ({ children }) => {
 export const useToast = () => useContext(ToastContext);
 
 // ======================
-// ✅ REVIEW CONTEXT (NEW)
+// ✅ REVIEW CONTEXT
 // ======================
 const ReviewContext = createContext();
 
@@ -260,6 +260,51 @@ export const ReviewProvider = ({ children }) => {
 export const useReviews = () => useContext(ReviewContext);
 
 // ======================
+// ✅ ORDER CONTEXT (NEW)
+// ======================
+const OrderContext = createContext();
+
+export const OrderProvider = ({ children }) => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const createOrder = async (orderData) => {
+    try {
+      setLoading(true);
+      const { data } = await axios.post("/orders", orderData);
+      setOrders((prev) => [data, ...prev]);
+      return { success: true };
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMyOrders = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get("/orders/myorders");
+      setOrders(data);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <OrderContext.Provider value={{ orders, createOrder, getMyOrders, loading, error }}>
+      {children}
+    </OrderContext.Provider>
+  );
+};
+
+export const useOrders = () => useContext(OrderContext);
+
+// ======================
 // ✅ APP PROVIDER WRAPPER
 // ======================
 export const AppContext = createContext({ apiBaseUrl: API_BASE_URL });
@@ -272,7 +317,9 @@ export const AppProviders = ({ children }) => {
           <CartProvider>
             <WishlistProvider>
               <ReviewProvider>
-                <ToastProvider>{children}</ToastProvider>
+                <OrderProvider>
+                  <ToastProvider>{children}</ToastProvider>
+                </OrderProvider>
               </ReviewProvider>
             </WishlistProvider>
           </CartProvider>
