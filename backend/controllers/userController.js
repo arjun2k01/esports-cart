@@ -16,6 +16,7 @@ export const registerUser = async (req, res) => {
 
     const user = await User.create({ name, email, password });
 
+    // 🔥 Set cookie
     generateToken(res, user._id);
 
     res.status(201).json({
@@ -42,7 +43,8 @@ export const loginUser = async (req, res) => {
     if (!match)
       return res.status(401).json({ message: "Invalid email or password" });
 
-    generateToken(res, user._id, user.isAdmin);
+    // 🔥 Set cookie
+    generateToken(res, user._id);
 
     res.json({
       _id: user._id,
@@ -59,8 +61,9 @@ export const loginUser = async (req, res) => {
 export const logoutUser = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
+    sameSite: "none",
+    path: "/", // IMPORTANT to clear the correct cookie
   });
 
   res.json({ message: "Logged out successfully" });
@@ -84,9 +87,7 @@ export const deleteUser = async (req, res) => {
     return res.status(404).json({ message: "User not found" });
 
   if (user.isAdmin)
-    return res
-      .status(403)
-      .json({ message: "Cannot delete an admin account" });
+    return res.status(403).json({ message: "Cannot delete an admin account" });
 
   await user.deleteOne();
   res.json({ message: "User deleted" });

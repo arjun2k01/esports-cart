@@ -1,22 +1,26 @@
-/* Import Tailwind directives */
-/* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
-/* Apply base styles */
-body {
-  font-family: 'Inter', sans-serif;
+@layer base {
+  body {
+    @apply bg-gaming-darker text-white font-body;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
 }
 
-/* Re-create keyframe animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 20px rgba(255, 184, 0, 0.5);
+  }
+  
+  .shadow-gaming {
+    box-shadow: 0 4px 20px rgba(255, 184, 0, 0.2);
+  }
 }
