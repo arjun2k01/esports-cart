@@ -1,214 +1,287 @@
 // src/components/Header.jsx
-import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-import { Menu, X, ShoppingCart, Heart, User, Gamepad2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { useCart, useWishlist } from "../context/AppProviders";
+import React, { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCart, useWishlist } from '../context/AppProviders';
+import { ShoppingCart, Heart, User, Menu, X, LogOut, Package, Search, Gamepad2 } from 'lucide-react';
 
 const Header = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { cart } = useCart();
+  const { cart, cartItemsCount } = useCart();
   const { wishlist } = useWishlist();
-  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const navItems = [
-    { to: "/", label: "Home" },
-    { to: "/products", label: "Products" },
-    { to: "/wishlist", label: "Wishlist" },
-    { to: "/cart", label: "Cart" },
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setMobileMenuOpen(false);
+  };
+
+  const navLinks = [
+    { to: '/', label: 'HOME' },
+    { to: '/products', label: 'PRODUCTS' },
+    { to: '/about', label: 'ABOUT' },
   ];
 
   return (
-    <nav className="bg-gaming-dark border-b border-gray-800 sticky top-0 z-50 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-12 h-12 bg-gradient-to-br from-gaming-gold to-gaming-orange rounded-xl flex items-center justify-center transition-transform group-hover:scale-110">
-            <Gamepad2 size={28} className="text-black" />
-          </div>
-          <span className="font-display text-2xl font-black text-gaming-gold uppercase tracking-wider hidden sm:block">
-            E-Sports Cart
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-neutral-800">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Gamepad2 className="w-7 h-7 text-white" />
+            </div>
+            <div className="hidden sm:block">
+              <span className="text-xl font-bold text-white">E-SPORTS</span>
+              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600"> CART</span>
+            </div>
+          </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `font-bold uppercase tracking-wide transition relative text-sm ${
-                  isActive ? "text-gaming-gold" : "text-gray-400 hover:text-white"
-                }`
-              }
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'text-orange-500'
+                      : 'text-gray-400 hover:text-white'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-4">
+            
+            {/* Search Button */}
+            <Link
+              to="/products"
+              className="p-2 text-gray-400 hover:text-white transition-colors"
+              aria-label="Search"
             >
-              {({ isActive }) => (
-                <>
-                  {item.label}
-                  {isActive && (
-                    <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gaming-gold"></div>
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+              <Search className="w-6 h-6" />
+            </Link>
 
-          {/* Icons */}
-          <div className="flex items-center gap-6">
             {/* Wishlist */}
-            <Link to="/wishlist" className="relative group">
-              <Heart size={24} className="text-gray-400 group-hover:text-gaming-gold transition" />
+            <Link
+              to="/wishlist"
+              className="relative p-2 text-gray-400 hover:text-white transition-colors"
+              aria-label="Wishlist"
+            >
+              <Heart className="w-6 h-6" />
               {wishlist.length > 0 && (
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-gaming-gold text-black text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                   {wishlist.length}
                 </span>
               )}
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" className="relative group">
-              <ShoppingCart size={24} className="text-gray-400 group-hover:text-gaming-gold transition" />
-              {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-gaming-orange text-black text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                  {cart.length}
+            <Link
+              to="/cart"
+              className="relative p-2 text-gray-400 hover:text-white transition-colors"
+              aria-label="Cart"
+            >
+              <ShoppingCart className="w-6 h-6" />
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {cartItemsCount}
                 </span>
               )}
             </Link>
 
             {/* User Menu */}
             {user ? (
-              <div className="group relative cursor-pointer">
-                <User size={24} className="text-gaming-gold" />
-                <div className="absolute right-0 hidden group-hover:block bg-surface-dark border border-gray-700 rounded-lg p-3 mt-2 w-40 shadow-xl">
+              <div className="relative group">
+                <button className="flex items-center gap-2 px-4 py-2 bg-neutral-900/50 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-all">
+                  <User className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-semibold text-white">{user.name}</span>
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                   <Link
                     to="/profile"
-                    className="block px-3 py-2 hover:bg-gaming-darker rounded text-gray-300 hover:text-gaming-gold transition"
+                    className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-neutral-800 transition-colors rounded-t-xl"
                   >
+                    <User className="w-4 h-4" />
                     Profile
                   </Link>
                   <Link
                     to="/orders"
-                    className="block px-3 py-2 hover:bg-gaming-darker rounded text-gray-300 hover:text-gaming-gold transition"
+                    className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-neutral-800 transition-colors"
                   >
-                    My Orders
+                    <Package className="w-4 h-4" />
+                    Orders
                   </Link>
                   <button
-                    onClick={logout}
-                    className="w-full text-left px-3 py-2 hover:bg-gaming-darker rounded text-out-red font-semibold transition"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-neutral-800 transition-colors rounded-b-xl"
                   >
+                    <LogOut className="w-4 h-4" />
                     Logout
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="text-gray-400 hover:text-gaming-gold text-sm font-bold uppercase transition"
+                  className="px-6 py-2 text-sm font-semibold text-white hover:text-orange-500 transition-colors"
                 >
-                  Login
+                  LOGIN
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-gaming-orange text-black px-5 py-2 rounded-lg hover:bg-gaming-gold font-bold uppercase text-sm transition-all hover:scale-105"
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
                 >
-                  Sign Up
+                  SIGN UP
                 </Link>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Mobile Menu Button */}
-        <button className="md:hidden text-gaming-gold" onClick={() => setOpen(!open)}>
-          {open ? <X size={28} /> : <Menu size={28} />}
-        </button>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
-      {open && (
-        <div className="md:hidden bg-gaming-darker px-6 py-4 space-y-4 border-t border-gray-800">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              className="block text-lg text-gray-400 hover:text-gaming-gold font-bold uppercase"
-            >
-              {item.label}
-            </NavLink>
-          ))}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-neutral-900 border-t border-neutral-800">
+          <div className="px-4 py-6 space-y-4">
+            
+            {/* Mobile Navigation Links */}
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `block py-3 px-4 rounded-xl text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-orange-500/10 text-orange-500'
+                      : 'text-gray-400 hover:bg-neutral-800 hover:text-white'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
 
-          {/* Mobile Icons */}
-          <div className="flex items-center gap-6 py-4 border-t border-gray-800">
-            <Link to="/wishlist" onClick={() => setOpen(false)} className="relative">
-              <Heart size={22} className="text-gray-400" />
+            {/* Mobile Search */}
+            <Link
+              to="/products"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+            >
+              <Search className="w-5 h-5" />
+              SEARCH
+            </Link>
+
+            {/* Mobile Wishlist */}
+            <Link
+              to="/wishlist"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-3 px-4 rounded-xl text-sm font-semibold text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Heart className="w-5 h-5" />
+                WISHLIST
+              </div>
               {wishlist.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-gaming-gold text-black text-xs px-1.5 py-0.5 rounded-full font-bold">
+                <span className="w-6 h-6 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                   {wishlist.length}
                 </span>
               )}
             </Link>
-            <Link to="/cart" onClick={() => setOpen(false)} className="relative">
-              <ShoppingCart size={22} className="text-gray-400" />
-              {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-gaming-orange text-black text-xs px-1.5 py-0.5 rounded-full font-bold">
-                  {cart.length}
+
+            {/* Mobile Cart */}
+            <Link
+              to="/cart"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-3 px-4 rounded-xl text-sm font-semibold text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <ShoppingCart className="w-5 h-5" />
+                CART
+              </div>
+              {cartItemsCount > 0 && (
+                <span className="w-6 h-6 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {cartItemsCount}
                 </span>
               )}
             </Link>
-          </div>
 
-          {/* Mobile User Auth */}
-          {user ? (
-            <>
-              <Link
-                to="/profile"
-                onClick={() => setOpen(false)}
-                className="block text-gray-400 hover:text-gaming-gold text-lg font-bold"
-              >
-                Profile
-              </Link>
-              <Link
-                to="/orders"
-                onClick={() => setOpen(false)}
-                className="block text-gray-400 hover:text-gaming-gold text-lg font-bold"
-              >
-                My Orders
-              </Link>
-              <button
-                onClick={() => {
-                  logout();
-                  setOpen(false);
-                }}
-                className="text-out-red text-lg font-bold"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="block text-gray-400 hover:text-gaming-gold text-lg font-bold"
-              >
-                Login
-              </Link>
-              <Link
-                to="/signup"
-                onClick={() => setOpen(false)}
-                className="block bg-gaming-orange text-black px-5 py-3 rounded-lg text-center font-bold uppercase"
-              >
-                Sign Up
-              </Link>
-            </>
-          )}
+            <div className="border-t border-neutral-800 pt-4 mt-4">
+              {user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+                  >
+                    <User className="w-5 h-5" />
+                    PROFILE
+                  </Link>
+                  <Link
+                    to="/orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+                  >
+                    <Package className="w-5 h-5" />
+                    ORDERS
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold text-red-500 hover:bg-neutral-800 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    LOGOUT
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block py-3 px-4 rounded-xl text-sm font-semibold text-center text-white hover:bg-neutral-800 transition-colors mb-2"
+                  >
+                    LOGIN
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block py-3 px-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all text-center shadow-lg shadow-orange-500/20"
+                  >
+                    SIGN UP
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };
 
