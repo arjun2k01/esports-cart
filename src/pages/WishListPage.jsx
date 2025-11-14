@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useCart, useWishlist } from '../context/CartContext';
+import { useCart, useWishlist } from '../context/AppProviders';
 import { Heart, ShoppingCart, Trash2, AlertCircle } from 'lucide-react';
 
 const WishlistPage = () => {
