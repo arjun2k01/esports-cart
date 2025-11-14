@@ -1,7 +1,7 @@
 // src/App.jsx
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-
+import { Toaster } from 'react-hot-toast';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -26,12 +26,30 @@ import ProtectedRoute from "./components/ProtectedRoute";
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-
+      {/* Toast Notifications */}
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1a1a1a',
+            color: '#fff',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '16px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#FF6B35',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       <Header />
-
       <main className="flex-1">
         <Routes>
-
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductListPage />} />
@@ -48,19 +66,16 @@ export default function App() {
               <CheckoutPage />
             </ProtectedRoute>
           }/>
-
           <Route path="/orders" element={
             <ProtectedRoute>
               <OrdersPage />
             </ProtectedRoute>
           }/>
-
           <Route path="/order/:id" element={
             <ProtectedRoute>
               <OrderDetailPage />
             </ProtectedRoute>
           }/>
-
           <Route path="/profile" element={
             <ProtectedRoute>
               <ProfilePage />
@@ -69,12 +84,9 @@ export default function App() {
 
           {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
-
         </Routes>
       </main>
-
       <Footer/>
-
     </div>
   );
 }
