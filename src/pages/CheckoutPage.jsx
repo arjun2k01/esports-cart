@@ -1,215 +1,243 @@
 // src/pages/CheckoutPage.jsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCart } from "../context/AppProviders";
-import { CreditCard, Loader2, Lock } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/AppProviders';
+import { CreditCard, Truck, MapPin, User, Phone, Mail, ArrowRight, ShoppingBag, Lock, Package } from 'lucide-react';
+import axiosInstance from '../lib/axios';
+import { toast } from 'react-hot-toast';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const { cart, cartTotal, clearCart } = useCart();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    pincode: "",
-    cardNumber: "",
-    cardExpiry: "",
-    cardCVC: "",
-  });
-
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState('cod');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
-  };
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm();
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email";
-    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
-    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = "Must be 10 digits";
-    if (!formData.address.trim()) newErrors.address = "Address is required";
-    if (!formData.city.trim()) newErrors.city = "City is required";
-    if (!formData.pincode.trim()) newErrors.pincode = "Pincode is required";
-    else if (!/^\d{6}$/.test(formData.pincode)) newErrors.pincode = "Must be 6 digits";
-    if (!formData.cardNumber.trim()) newErrors.cardNumber = "Card number is required";
-    if (!formData.cardExpiry.trim()) newErrors.cardExpiry = "Expiry is required";
-    if (!formData.cardCVC.trim()) newErrors.cardCVC = "CVC is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      alert("Please fill all fields correctly");
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-    setLoading(true);
-    
-    // Simulate order placement
-    setTimeout(() => {
-      clearCart();
-      alert("Order placed successfully! 🎉");
-      navigate("/");
+    if (cart.length === 0) {
+      navigate('/cart');
+      return;
+    }
+    if (user) {
+      setValue('name', user.name);
+      setValue('email', user.email);
+    }
+  }, [isAuthenticated, cart, user, navigate, setValue]);
+
+  const onSubmit = async (formData) => {
+    try {
+      setLoading(true);
+      const orderData = {
+        orderItems: cart.map(item => ({
+          product: item._id,
+          name: item.name,
+          image: item.image,
+          price: item.price,
+          qty: item.qty,
+        })),
+        shippingAddress: {
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          state: formData.state,
+          country: formData.country || 'India',
+        },
+        paymentMethod: paymentMethod,
+        itemsPrice: cartTotal,
+        shippingPrice: cartTotal >= 500 ? 0 : 50,
+        taxPrice: Math.round(cartTotal * 0.18),
+        totalPrice: cartTotal >= 500 ? Math.round(cartTotal * 1.18) : Math.round(cartTotal * 1.18) + 50,
+      };
+      const { data } = await axiosInstance.post('/orders', orderData);
+      if (data._id) {
+        clearCart();
+        toast.success('Order placed successfully!');
+        navigate(`/order/${data._id}`);
+      }
+    } catch (error) {
+      console.error('Order placement error:', error);
+      const message = error.response?.data?.message || 'Failed to place order. Please try again.';
+      toast.error(message);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
-  if (cart.length === 0) {
-    navigate("/cart");
-    return null;
-  }
+  const shippingPrice = cartTotal >= 500 ? 0 : 50;
+  const taxPrice = Math.round(cartTotal * 0.18);
+  const totalPrice = cartTotal + shippingPrice + taxPrice;
 
   return (
-    <div className="min-h-screen bg-gaming-darker py-12">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black py-12 px-4">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="font-display text-4xl md:text-5xl font-black text-white uppercase mb-2">
-            Secure <span className="text-gaming-gold">Checkout</span>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">CHECKOUT</span>
           </h1>
-          <p className="text-gray-400">Complete your purchase</p>
+          <p className="text-gray-400">Complete your order</p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-surface-dark border border-gray-800 rounded-xl p-6">
-                <h2 className="font-display text-2xl font-bold text-white uppercase mb-6 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-gaming-gold text-black rounded-full flex items-center justify-center font-black text-sm">1</span>
-                  Shipping Information
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                    <User className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Contact Information</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Full Name *</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.name ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="Enter your name" />
-                    {errors.name && <p className="text-out-red text-xs mt-1">{errors.name}</p>}
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Full Name *</label>
+                    <input type="text" {...register('name', { required: 'Name is required' })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="John Doe" />
+                    {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
                   </div>
                   <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Email *</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.email ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="your@email.com" />
-                    {errors.email && <p className="text-out-red text-xs mt-1">{errors.email}</p>}
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Email *</label>
+                    <input type="email" {...register('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="john@example.com" />
+                    {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
                   </div>
-                  <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Phone *</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.phone ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="10-digit number" maxLength="10" />
-                    {errors.phone && <p className="text-out-red text-xs mt-1">{errors.phone}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">City *</label>
-                    <input type="text" name="city" value={formData.city} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.city ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="Your city" />
-                    {errors.city && <p className="text-out-red text-xs mt-1">{errors.city}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Address *</label>
-                    <input type="text" name="address" value={formData.address} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.address ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="Street address" />
-                    {errors.address && <p className="text-out-red text-xs mt-1">{errors.address}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Pincode *</label>
-                    <input type="text" name="pincode" value={formData.pincode} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.pincode ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="6-digit pincode" maxLength="6" />
-                    {errors.pincode && <p className="text-out-red text-xs mt-1">{errors.pincode}</p>}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number *</label>
+                    <input type="tel" {...register('phone', { required: 'Phone number is required', pattern: { value: /^[0-9]{10}$/, message: 'Please enter a valid 10-digit phone number' } })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="9876543210" />
+                    {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>}
                   </div>
                 </div>
               </div>
-
-              <div className="bg-surface-dark border border-gray-800 rounded-xl p-6">
-                <h2 className="font-display text-2xl font-bold text-white uppercase mb-6 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-gaming-gold text-black rounded-full flex items-center justify-center font-black text-sm">2</span>
-                  Payment Details
-                </h2>
-                <div className="flex items-center gap-2 bg-gaming-gold/10 border border-gaming-gold px-4 py-3 rounded-lg mb-6">
-                  <Lock className="text-gaming-gold" size={20} />
-                  <span className="text-gaming-gold font-semibold text-sm">Secure encrypted payment</span>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-gray-400 font-semibold mb-2 text-sm">Card Number *</label>
-                    <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleChange}
-                      className={`w-full bg-gaming-darker border ${errors.cardNumber ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                      placeholder="1234 5678 9012 3456" maxLength="19" />
-                    {errors.cardNumber && <p className="text-out-red text-xs mt-1">{errors.cardNumber}</p>}
+              <div className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-orange-500" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h2 className="text-xl font-bold text-white">Shipping Address</h2>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Address *</label>
+                    <textarea {...register('address', { required: 'Address is required' })} rows="3" className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all resize-none" placeholder="House no., Street name, Area" />
+                    {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address.message}</p>}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-gray-400 font-semibold mb-2 text-sm">Expiry *</label>
-                      <input type="text" name="cardExpiry" value={formData.cardExpiry} onChange={handleChange}
-                        className={`w-full bg-gaming-darker border ${errors.cardExpiry ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                        placeholder="MM/YY" maxLength="5" />
-                      {errors.cardExpiry && <p className="text-out-red text-xs mt-1">{errors.cardExpiry}</p>}
+                      <label className="block text-sm font-medium text-gray-300 mb-2">City *</label>
+                      <input type="text" {...register('city', { required: 'City is required' })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="Mumbai" />
+                      {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city.message}</p>}
                     </div>
                     <div>
-                      <label className="block text-gray-400 font-semibold mb-2 text-sm">CVC *</label>
-                      <input type="text" name="cardCVC" value={formData.cardCVC} onChange={handleChange}
-                        className={`w-full bg-gaming-darker border ${errors.cardCVC ? 'border-out-red' : 'border-gray-700'} text-white px-4 py-3 rounded-lg focus:outline-none focus:border-gaming-gold transition`}
-                        placeholder="123" maxLength="3" />
-                      {errors.cardCVC && <p className="text-out-red text-xs mt-1">{errors.cardCVC}</p>}
+                      <label className="block text-sm font-medium text-gray-300 mb-2">State *</label>
+                      <input type="text" {...register('state', { required: 'State is required' })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="Maharashtra" />
+                      {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state.message}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Postal Code *</label>
+                      <input type="text" {...register('postalCode', { required: 'Postal code is required', pattern: { value: /^[0-9]{6}$/, message: 'Please enter a valid 6-digit postal code' } })} className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="400001" />
+                      {errors.postalCode && <p className="mt-1 text-sm text-red-500">{errors.postalCode.message}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Country *</label>
+                      <input type="text" {...register('country')} defaultValue="India" className="w-full px-4 py-3 bg-black/50 border border-neutral-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" placeholder="India" />
                     </div>
                   </div>
                 </div>
               </div>
-
-              <button type="submit" disabled={loading}
-                className="w-full bg-gaming-orange hover:bg-gaming-gold text-black py-4 rounded-xl font-bold uppercase transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
-                {loading ? <><Loader2 className="animate-spin" size={20} />Processing...</> : <><CreditCard size={20} />Place Order</>}
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="bg-surface-dark border border-gray-800 rounded-xl p-6 sticky top-24">
-              <h2 className="font-display text-2xl font-bold text-white uppercase mb-6">Order Summary</h2>
-              <div className="space-y-3 mb-6">
-                {cart.map((item) => (
-                  <div key={item._id} className="flex gap-3">
-                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg" />
+              <div className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Payment Method</h2>
+                </div>
+                <div className="space-y-3">
+                  <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-orange-500 bg-orange-500/5' : 'border-neutral-800 hover:border-neutral-700'}`}>
+                    <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 text-orange-500" />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm line-clamp-1">{item.name}</p>
-                      <p className="text-gray-400 text-sm">Qty: {item.qty}</p>
+                      <p className="font-semibold text-white">Cash on Delivery</p>
+                      <p className="text-sm text-gray-400">Pay when you receive</p>
                     </div>
-                    <p className="text-gaming-gold font-bold">₹{(item.price * item.qty).toLocaleString('en-IN')}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t border-gray-700 pt-4 space-y-2 mb-6">
-                <div className="flex justify-between text-gray-400">
-                  <span>Subtotal:</span>
-                  <span className="text-white font-bold">₹{cartTotal.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Shipping:</span>
-                  <span className="text-stock-green font-bold">FREE</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-gray-700">
-                  <span className="font-display text-xl font-bold text-white">Total:</span>
-                  <span className="font-display text-2xl font-black text-gaming-gold">₹{cartTotal.toLocaleString('en-IN')}</span>
+                    <Package className="w-6 h-6 text-gray-400" />
+                  </label>
+                  <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-orange-500 bg-orange-500/5' : 'border-neutral-800 hover:border-neutral-700'}`}>
+                    <input type="radio" value="card" checked={paymentMethod === 'card'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 text-orange-500" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-white">Card Payment</p>
+                      <p className="text-sm text-gray-400">Credit / Debit / UPI</p>
+                    </div>
+                    <CreditCard className="w-6 h-6 text-gray-400" />
+                  </label>
                 </div>
               </div>
             </div>
+            <div className="lg:col-span-1">
+              <div className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-2xl p-6 sticky top-24">
+                <h2 className="text-xl font-bold text-white mb-6">Order Summary</h2>
+                <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
+                  {cart.map((item) => (
+                    <div key={item._id} className="flex gap-4">
+                      <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg" />
+                      <div className="flex-1">
+                        <p className="text-white font-semibold text-sm line-clamp-1">{item.name}</p>
+                        <p className="text-gray-400 text-sm">Qty: {item.qty}</p>
+                        <p className="text-orange-500 font-bold">₹{item.price * item.qty}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-3 pt-4 border-t border-neutral-800">
+                  <div className="flex justify-between text-gray-400">
+                    <span>Subtotal</span>
+                    <span className="text-white font-semibold">₹{cartTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-400">
+                  <span>Shipping</span>
+                    <span className={shippingPrice === 0 ? 'text-green-500 font-semibold' : 'text-white font-semibold'}>
+                      {shippingPrice === 0 ? 'FREE' : `₹${shippingPrice}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-400">
+                    <span>Tax (18%)</span>
+                    <span className="text-white font-semibold">₹{taxPrice.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between pt-4 border-t border-neutral-800">
+                    <span className="text-xl font-bold text-white">Total</span>
+                    <span className="text-2xl font-bold text-orange-500">₹{totalPrice.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      PLACING ORDER...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5" />
+                      PLACE ORDER
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Your payment information is secure and encrypted
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
