@@ -2,15 +2,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/AppProviders";
-import { useOrders } from "../context/OrderContext";
-import { useToast } from "../context/ToastContext";
 import { CreditCard, Loader2, Lock } from "lucide-react";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cart, cartTotal, clearCart } = useCart();
-  const { createOrder } = useOrders();
-  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,40 +52,18 @@ const CheckoutPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
-      showToast("Please fill all fields correctly", "error");
+      alert("Please fill all fields correctly");
       return;
     }
     setLoading(true);
-    try {
-      const orderData = {
-        orderItems: cart.map(item => ({
-          product: item._id,
-          name: item.name,
-          qty: item.qty,
-          price: item.price,
-          image: item.image,
-        })),
-        shippingAddress: {
-          address: formData.address,
-          city: formData.city,
-          postalCode: formData.pincode,
-        },
-        paymentMethod: "Card",
-        totalPrice: cartTotal,
-      };
-      const result = await createOrder(orderData);
-      if (result.success) {
-        clearCart();
-        showToast("Order placed successfully! 🎉");
-        navigate("/orders");
-      } else {
-        showToast(result.error || "Failed to place order", "error");
-      }
-    } catch (error) {
-      showToast("Something went wrong", "error");
-    } finally {
+    
+    // Simulate order placement
+    setTimeout(() => {
+      clearCart();
+      alert("Order placed successfully! 🎉");
+      navigate("/");
       setLoading(false);
-    }
+    }, 2000);
   };
 
   if (cart.length === 0) {
