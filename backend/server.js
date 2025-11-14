@@ -1,3 +1,4 @@
+// backend/server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -16,21 +17,21 @@ import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
-// Connect to DB
+// Connect DB
 connectDB();
 
 const app = express();
 
-// ⭐ REQUIRED for Render proxy + secure cookies ⭐
+// ⭐ Required for Render proxy + secure cookies
 app.set("trust proxy", 1);
 
-// -------------------------------- SECURITY --------------------------------
+// ---------------------- SECURITY ----------------------
 app.use(helmet());
 app.use(xss());
 app.use(mongoSanitize());
 app.use(cookieParser());
 
-// -------------------------------- RATE LIMIT --------------------------------
+// ---------------------- RATE LIMIT ----------------------
 app.use(
   "/api",
   rateLimit({
@@ -42,40 +43,52 @@ app.use(
   })
 );
 
-// -------------------------------- CORS FIX --------------------------------
-// This MUST match your Vercel domain exactly
-const allowedOrigin = "https://esports-cart.vercel.app";
-
+// ---------------------- CORS FIX (FINAL) ----------------------
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: function (origin, callback) {
+      // Allow backend-to-backend or mobile requests (no origin)
+      if (!origin) return callback(null, true);
+
+      const vercelDomain = /\.vercel\.app$/;     // Allow any *.vercel.app (production + preview)
+      const localhost = /^http:\/\/localhost:\d+$/; // Allow localhost for dev
+
+      if (vercelDomain.test(origin) || localhost.test(origin)) {
+        return callback(null, true);
+      }
+
+      console.log("❌ BLOCKED ORIGIN:", origin);
+      return callback(new Error("CORS not allowed for this origin"));
+    },
     credentials: true,
   })
 );
 
-// -------------------------------- BODY PARSING --------------------------------
+// ---------------------- BODY PARSING ----------------------
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: false }));
 
-// -------------------------------- API ROUTES --------------------------------
+// ---------------------- ROUTES ----------------------
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/ai", aiRoutes);
 
-// -------------------------------- ROOT --------------------------------
+// ---------------------- ROOT ROUTE ----------------------
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-// -------------------------------- ERROR HANDLER --------------------------------
+// ---------------------- ERROR HANDLER ----------------------
 app.use((err, req, res, next) => {
-  console.error("ERROR:", err.message);
-  res.status(500).json({ message: err.message || "Server error" });
+  console.error("❌ SERVER ERROR:", err.message);
+  res.status(500).json({
+    message: err.message || "Server error",
+  });
 });
 
-// -------------------------------- START SERVER --------------------------------
+// ---------------------- START SERVER ----------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`Server running in ${process.env.NODE_ENV} on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+});

@@ -1,4 +1,3 @@
-// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // BGMI-inspired color palette
+        // BGMI-inspired gaming palette
         'gaming-gold': '#FFB800',
         'gaming-orange': '#FF6B35',
         'gaming-dark': '#0D0D0D',
@@ -19,7 +18,7 @@ export default {
       },
       fontFamily: {
         'display': ['Rajdhani', 'sans-serif'],
-        'body': ['Inter', 'system-ui'],
+        'body': ['Inter', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'hero-gradient': 'linear-gradient(135deg, #0D0D0D 0%, #2A2A2A 100%)',
