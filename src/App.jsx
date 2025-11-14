@@ -14,6 +14,7 @@ import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import WishListPage from "./pages/WishListPage";
@@ -66,16 +67,25 @@ export default function App() {
               <CheckoutPage />
             </ProtectedRoute>
           }/>
+
+          <Route path="/order-confirmation/:orderId" element={
+            <ProtectedRoute>
+              <OrderConfirmationPage />
+            </ProtectedRoute>
+          }/>
+
           <Route path="/orders" element={
             <ProtectedRoute>
               <OrdersPage />
             </ProtectedRoute>
           }/>
+
           <Route path="/order/:id" element={
             <ProtectedRoute>
               <OrderDetailPage />
             </ProtectedRoute>
           }/>
+
           <Route path="/profile" element={
             <ProtectedRoute>
               <ProfilePage />
