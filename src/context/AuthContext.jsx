@@ -1,75 +1,88 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
-import axios from '../lib/axios';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import axiosInstance from '../lib/axios';
 import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+    checkAuth();
+  }, []);
 
-  const fetchUser = async () => {
+  const checkAuth = async () => {
     try {
-      const res = await axios.get('/auth/me');
-      setUser(res.data.user);
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      if (token && userData) {
+        setUser(JSON.parse(userData));
+        setIsAuthenticated(true);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      logout();
+      console.error('Auth check error:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (name, email, password) => {
+  const login = async (email, password) => {
     try {
-      const res = await axios.post('/auth/register', { name, email, password });
-      const { token, user } = res.data;
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      toast.success('Account created successfully!');
-      return { success: true };
+      const { data } = await axiosInstance.post('/users/login', {
+        email,
+        password,
+      });
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+        setUser(data.user);
+        setIsAuthenticated(true);
+        toast.success(`Welcome back, ${data.user.name}!`);
+        return { success: true };
+      }
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
+      const message = error.response?.data?.message || 'Login failed. Please try again.';
       toast.error(message);
       return { success: false, message };
     }
   };
 
-  const login = async (email, password) => {
+  const signup = async (name, email, password) => {
     try {
-      const res = await axios.post('/auth/login', { email, password });
-      const { token, user } = res.data;
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      toast.success('Logged in successfully!');
-      return { success: true };
+      const { data } = await axiosInstance.post('/users/register', {
+        name,
+        email,
+        password,
+      });
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+        setUser(data.user);
+        setIsAuthenticated(true);
+        toast.success(`Welcome to E-Sports Cart, ${data.user.name}!`);
+        return { success: true };
+      }
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message || 'Signup failed. Please try again.';
       toast.error(message);
       return { success: false, message };
     }
@@ -77,15 +90,30 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    setToken(null);
+    localStorage.removeItem('user');
+    delete axiosInstance.defaults.headers.common['Authorization'];
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
+    setIsAuthenticated(false);
     toast.success('Logged out successfully');
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const updateUser = (updatedData) => {
+    const updatedUser = { ...user, ...updatedData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const value = {
+    user,
+    loading,
+    isAuthenticated,
+    login,
+    signup,
+    logout,
+    updateUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;
