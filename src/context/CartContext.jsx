@@ -27,7 +27,7 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product, quantity = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item._id === product._id);
-      
+
       if (existing) {
         toast.success('Updated quantity in cart');
         return prev.map(item =>
@@ -36,7 +36,7 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-      
+
       toast.success('Added to cart!');
       return [...prev, { ...product, quantity }];
     });
@@ -52,7 +52,7 @@ export const CartProvider = ({ children }) => {
       removeFromCart(productId);
       return;
     }
-    
+
     setCart(prev =>
       prev.map(item =>
         item._id === productId ? { ...item, quantity } : item
