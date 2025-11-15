@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "../lib/axios";
 import ProductCard from "../components/ProductCard";
+import { ProductGridSkeleton } from "../components/LoadingSkeletons";
 import { Zap, TrendingUp, Award, ChevronDown, Trophy, Users, Headphones } from "lucide-react";
 
 const HomePage = () => {
@@ -26,27 +27,6 @@ const HomePage = () => {
   const scrollToProducts = () => {
     document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
   };
-
-  if (loading)
-    return (
-      <div className="min-h-screen bg-gaming-darker">
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="h-96 bg-surface-dark animate-pulse rounded-2xl shadow"
-            ></div>
-          ))}
-        </div>
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="min-h-screen bg-gaming-darker flex items-center justify-center">
-        <div className="text-center text-out-red text-xl font-bold">{error}</div>
-      </div>
-    );
 
   return (
     <div className="min-h-screen bg-gaming-darker">
@@ -116,6 +96,7 @@ const HomePage = () => {
               <div className="text-3xl md:text-4xl font-black text-gaming-gold group-hover:scale-110 transition-transform">500+</div>
               <div className="text-gray-400 uppercase text-xs md:text-sm mt-1 font-semibold">Products</div>
             </div>
+
             <div className="text-center group cursor-default">
               <div className="flex items-center justify-center mb-2">
                 <Users className="text-gaming-gold" size={32} />
@@ -123,6 +104,7 @@ const HomePage = () => {
               <div className="text-3xl md:text-4xl font-black text-gaming-gold group-hover:scale-110 transition-transform">10K+</div>
               <div className="text-gray-400 uppercase text-xs md:text-sm mt-1 font-semibold">Happy Gamers</div>
             </div>
+
             <div className="text-center group cursor-default">
               <div className="flex items-center justify-center mb-2">
                 <Headphones className="text-gaming-gold" size={32} />
@@ -181,8 +163,21 @@ const HomePage = () => {
             <p className="text-gray-400 text-lg">Gear up with the best gaming equipment</p>
           </div>
 
-          {/* Products Grid */}
-          {products.length === 0 ? (
+          {/* Products Grid with Loading State */}
+          {loading ? (
+            <ProductGridSkeleton count={6} />
+          ) : error ? (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">❌</div>
+              <div className="text-red-500 text-xl font-bold">{error}</div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-4 bg-gaming-orange text-black px-6 py-2 rounded-lg font-bold hover:bg-gaming-gold transition"
+              >
+                Retry
+              </button>
+            </div>
+          ) : products.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">🎮</div>
               <div className="text-gray-400 text-xl">No products available at the moment.</div>
@@ -250,7 +245,6 @@ const HomePage = () => {
           </button>
         </div>
       </section>
-
     </div>
   );
 };
