@@ -3,14 +3,16 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import Navbar from './components/Header';
+import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/SignupPage';
+import SignUpPage from './pages/SignUpPage';
 import CheckoutPage from './pages/CheckoutPage';
+import SignUpPage from './pages/SignUpPage';
+import Header from './components/Header';
 
 function App() {
   return (
@@ -32,14 +34,14 @@ function App() {
           />
           
           <div className="flex flex-col min-h-screen">
-            <Navbar />
+            <Header />
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/register" element={<SignUpPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
               </Routes>
             </main>
