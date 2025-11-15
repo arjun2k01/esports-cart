@@ -1,4 +1,3 @@
-// src/context/CartContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -6,7 +5,7 @@ const CartContext = createContext();
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  return context || {}; // Prevent destructure errors
+  return context || {}; // Always return object, no throw
 };
 
 export const CartProvider = ({ children }) => {
