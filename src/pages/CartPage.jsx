@@ -1,120 +1,103 @@
 // src/pages/CartPage.jsx
+
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 
-const CartPage = () => {
-  const { cart, removeFromCart, updateQuantity, getCartTotal } = useCart();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+const cartContext = typeof useCart === "function" ? useCart() || {} : {};
+const {
+  cart = [],
+  removeFromCart = () => {},
+  updateQuantity = () => {},
+  getCartTotal = () => 0,
+} = cartContext;
 
-  if (cart.length === 0) {
-    return (
-      <div className="min-h-screen bg-gaming-darker flex items-center justify-center">
-        <div className="text-center">
-          <ShoppingBag className="w-24 h-24 mx-auto text-gray-600 mb-4" />
-          <h2 className="text-3xl font-bold text-white mb-2">Your cart is empty</h2>
-          <p className="text-gray-400 mb-6">Add some awesome gaming gear!</p>
+const { user } = useAuth ? useAuth() : {};
+const navigate = useNavigate();
+
+return (
+  <div className="pt-8 pb-40 px-8 min-h-screen bg-gray-950 text-white">
+    <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+      <ShoppingBag />
+      My Cart
+    </h2>
+    {cart.length === 0 ? (
+      <div className="flex flex-col items-center mt-20 space-y-6">
+        <img src="/empty-cart.svg" alt="Empty cart" className="w-48" />
+        <p className="text-xl font-semibold text-gray-400">Your cart is empty!</p>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-bold"
+          onClick={() => navigate('/products')}
+        >
+          Shop Now
+        </button>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-8">
+        <table className="w-full border-separate border-spacing-y-4">
+          <thead>
+            <tr>
+              <th className="text-left">Item</th>
+              <th className="text-left">Price</th>
+              <th className="text-left">Quantity</th>
+              <th className="text-left">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {cart.map((item) => (
+              <tr key={item._id} className="bg-gray-800 rounded-lg shadow overflow-hidden">
+                <td className="flex items-center gap-4 py-4 pl-6">
+                  <img src={item.image} alt={item.name} className="w-20 h-20 object-contain rounded-lg" />
+                  <div>
+                    <div className="font-bold text-lg">{item.name}</div>
+                    <div className="text-gray-400 text-sm">{item.brand}</div>
+                  </div>
+                </td>
+                <td className="font-bold text-lg">₹{item.price}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                      className="bg-gray-900 hover:bg-gray-700 p-1 rounded-full disabled:opacity-50"
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span className="px-3 font-semibold">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                      className="bg-gray-900 hover:bg-gray-700 p-1 rounded-full"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </td>
+                <td className="font-bold text-lg">₹{item.price * item.quantity}</td>
+                <td>
+                  <button
+                    onClick={() => removeFromCart(item._id)}
+                    className="bg-red-600 hover:bg-red-800 text-white px-3 py-2 rounded-full"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="flex justify-end items-center gap-8 mr-10">
+          <div className="text-lg font-semibold">Total: <span className="text-3xl font-bold text-blue-500">₹{getCartTotal()}</span></div>
           <button
-            onClick={() => navigate('/')}
-            className="bg-gaming-orange hover:bg-gaming-gold text-black font-bold px-8 py-3 rounded-xl transition-all"
+            className="bg-green-600 hover:bg-green-700 text-white px-10 py-3 rounded-xl font-bold text-lg"
+            onClick={() => user ? navigate('/checkout') : navigate('/login')}
           >
-            Continue Shopping
+            Proceed to Checkout
           </button>
         </div>
       </div>
-    );
-  }
+    )}
+  </div>
+);
 
-  return (
-    <div className="min-h-screen bg-gaming-darker py-12">
-      <div className="max-w-7xl mx-auto px-6">
-        <h1 className="text-4xl font-black text-white mb-8">
-          SHOPPING <span className="text-gaming-gold">CART</span>
-        </h1>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2">
-            {cart.map(item => (
-              <div
-                key={item._id}
-                className="bg-surface-dark border border-gray-800 rounded-xl p-6 mb-4 flex gap-4"
-              >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-24 h-24 object-cover rounded-lg"
-                />
-                
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
-                  <p className="text-gaming-gold text-xl font-bold">₹{item.price}</p>
-                  
-                  <div className="flex items-center gap-3 mt-4">
-                    <button
-                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                      className="bg-gaming-dark hover:bg-gaming-gold/20 p-2 rounded-lg transition-all"
-                    >
-                      <Minus size={16} className="text-gaming-gold" />
-                    </button>
-                    
-                    <span className="text-white font-bold w-12 text-center">
-                      {item.quantity}
-                    </span>
-                    
-                    <button
-                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                      className="bg-gaming-dark hover:bg-gaming-gold/20 p-2 rounded-lg transition-all"
-                    >
-                      <Plus size={16} className="text-gaming-gold" />
-                    </button>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => removeFromCart(item._id)}
-                  className="text-red-500 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-surface-dark border border-gray-800 rounded-xl p-6 sticky top-24">
-              <h2 className="text-2xl font-bold text-white mb-6">Order Summary</h2>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-400">
-                  <span>Subtotal</span>
-                  <span>₹{getCartTotal()}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Shipping</span>
-                  <span className="text-gaming-gold">FREE</span>
-                </div>
-                <div className="border-t border-gray-700 pt-3 flex justify-between text-white text-xl font-bold">
-                  <span>Total</span>
-                  <span className="text-gaming-gold">₹{getCartTotal()}</span>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => user ? navigate('/checkout') : navigate('/login')}
-                className="w-full bg-gaming-orange hover:bg-gaming-gold text-black font-bold py-4 rounded-xl transition-all hover:scale-105"
-              >
-                {user ? 'Proceed to Checkout' : 'Login to Checkout'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default CartPage;
