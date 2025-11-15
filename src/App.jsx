@@ -1,54 +1,32 @@
-// src/App.jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
-import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
-import CheckoutPage from './pages/CheckoutPage';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
+import Footer from './components/Footer';
+// import your pages here
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
+import CartPage from './pages/CartPage';
+// ... other imports (AuthProvider, CartProvider, Toaster, etc.)
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#1F2937',
-                color: '#FFB800',
-                border: '1px solid #FFB800',
-                borderRadius: '12px',
-                padding: '16px'
-              }
-            }}
-          />
-          
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/product/:id" element={<ProductDetailPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<SignUpPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </CartProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <CartProvider>
+        <Toaster position="top-right" />
+        <div className="flex flex-col min-h-screen">
+          <Header />
+          <main className="flex-1">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              {/* Add other Route lines for your pages */}
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </CartProvider>
+    </AuthProvider>
   );
 }
-
 export default App;
