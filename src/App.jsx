@@ -6,7 +6,9 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import CartPage from './pages/CartPage';
-// ... other imports (AuthProvider, CartProvider, Toaster, etc.)
+import { AuthProvider } from './context/AuthContext';    // <--- import added!
+import { CartProvider } from './context/CartContext';    // <--- import added!
+import { Toaster } from 'react-hot-toast';               // <--- import added!
 
 function App() {
   return (
