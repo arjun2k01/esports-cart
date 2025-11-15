@@ -2,18 +2,42 @@
 import { useEffect, useState } from "react";
 import axios from "../lib/axios";
 import ProductCard from "../components/ProductCard";
+import ProductFilter from "../components/ProductFilter";
 import { ProductGridSkeleton } from "../components/LoadingSkeletons";
 import { Zap, TrendingUp, Award, ChevronDown, Trophy, Users, Headphones } from "lucide-react";
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Filter metadata
+  const [categories, setCategories] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [platforms, setPlatforms] = useState([]);
+  const [modes, setModes] = useState([]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
 
   const fetchProducts = async () => {
     try {
       const res = await axios.get("/products");
-      setProducts(res.data);
+      const data = res.data;
+      setProducts(data);
+      setFilteredProducts(data);
+      
+      // Extract unique values for filters
+      const uniqueCats = [...new Set(data.map(p => p.category).filter(Boolean))];
+      const uniqueTags = [...new Set(data.flatMap(p => p.tags || []))];
+      const uniquePlatforms = [...new Set(data.map(p => p.platform).filter(Boolean))];
+      const uniqueModes = [...new Set(data.map(p => p.mode).filter(Boolean))];
+      const prices = data.map(p => p.price || 0);
+      
+      setCategories(uniqueCats);
+      setTags(uniqueTags);
+      setPlatforms(uniquePlatforms);
+      setModes(uniqueModes);
+      setPriceRange([Math.min(...prices), Math.max(...prices)]);
     } catch (err) {
       setError("Failed to load products");
     }
@@ -23,6 +47,81 @@ const HomePage = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleFilter = (filters) => {
+    let result = [...products];
+    
+    // Search query
+    if (filters.query) {
+      result = result.filter(p => 
+        p.name?.toLowerCase().includes(filters.query.toLowerCase()) ||
+        p.description?.toLowerCase().includes(filters.query.toLowerCase())
+      );
+    }
+    
+    // Categories (multi-select)
+    if (filters.categories && filters.categories.length > 0) {
+      result = result.filter(p => filters.categories.includes(p.category));
+    }
+    
+    // Tags
+    if (filters.tags && filters.tags.length > 0) {
+      result = result.filter(p => 
+        p.tags?.some(tag => filters.tags.includes(tag))
+      );
+    }
+    
+    // Platforms
+    if (filters.platforms && filters.platforms.length > 0) {
+      result = result.filter(p => filters.platforms.includes(p.platform));
+    }
+    
+    // Modes
+    if (filters.modes && filters.modes.length > 0) {
+      result = result.filter(p => filters.modes.includes(p.mode));
+    }
+    
+    // Price range
+    if (filters.price) {
+      result = result.filter(p => 
+        p.price >= filters.price[0] && p.price <= filters.price[1]
+      );
+    }
+    
+    // Rating
+    if (filters.minRating) {
+      result = result.filter(p => (p.rating || 0) >= filters.minRating);
+    }
+    
+    setFilteredProducts(result);
+  };
+
+  const handleSort = (sortType) => {
+    let sorted = [...filteredProducts];
+    
+    switch(sortType) {
+      case 'price_low':
+        sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price_high':
+        sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'rating':
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'newest':
+        sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'top_seller':
+        sorted.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
+        break;
+      default:
+        // relevance - keep as is
+        break;
+    }
+    
+    setFilteredProducts(sorted);
+  };
 
   const scrollToProducts = () => {
     document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
@@ -96,7 +195,6 @@ const HomePage = () => {
               <div className="text-3xl md:text-4xl font-black text-gaming-gold group-hover:scale-110 transition-transform">500+</div>
               <div className="text-gray-400 uppercase text-xs md:text-sm mt-1 font-semibold">Products</div>
             </div>
-
             <div className="text-center group cursor-default">
               <div className="flex items-center justify-center mb-2">
                 <Users className="text-gaming-gold" size={32} />
@@ -104,7 +202,6 @@ const HomePage = () => {
               <div className="text-3xl md:text-4xl font-black text-gaming-gold group-hover:scale-110 transition-transform">10K+</div>
               <div className="text-gray-400 uppercase text-xs md:text-sm mt-1 font-semibold">Happy Gamers</div>
             </div>
-
             <div className="text-center group cursor-default">
               <div className="flex items-center justify-center mb-2">
                 <Headphones className="text-gaming-gold" size={32} />
@@ -113,12 +210,14 @@ const HomePage = () => {
               <div className="text-gray-400 uppercase text-xs md:text-sm mt-1 font-semibold">Support</div>
             </div>
           </div>
+
         </div>
 
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
           <ChevronDown className="text-gaming-gold" size={32} />
         </div>
+
       </section>
 
       {/* 🎯 FEATURED CATEGORIES SECTION */}
@@ -163,6 +262,22 @@ const HomePage = () => {
             <p className="text-gray-400 text-lg">Gear up with the best gaming equipment</p>
           </div>
 
+          {/* 🔥 ADVANCED PRODUCT FILTER */}
+          {!loading && products.length > 0 && (
+            <div className="mb-8">
+              <ProductFilter
+                categories={categories}
+                tags={tags}
+                platforms={platforms}
+                modes={modes}
+                minPrice={priceRange[0]}
+                maxPrice={priceRange[1]}
+                onFilter={handleFilter}
+                onSort={handleSort}
+              />
+            </div>
+          )}
+
           {/* Products Grid with Loading State */}
           {loading ? (
             <ProductGridSkeleton count={6} />
@@ -177,76 +292,8 @@ const HomePage = () => {
                 Retry
               </button>
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20">
-              <div className="text-6xl mb-4">🎮</div>
-              <div className="text-gray-400 text-xl">No products available at the moment.</div>
-              <p className="text-gray-500 mt-2">Check back soon for amazing deals!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 🎖️ FEATURES SECTION */}
-      <section className="bg-gaming-dark py-16 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Feature 1 */}
-            <div className="text-center group">
-              <div className="w-16 h-16 bg-gradient-to-br from-gaming-gold to-gaming-orange rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Award size={32} className="text-black" />
-              </div>
-              <h3 className="font-display text-xl font-bold text-white mb-2 uppercase">Premium Quality</h3>
-              <p className="text-gray-400">Authentic products from trusted brands</p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="text-center group">
-              <div className="w-16 h-16 bg-gradient-to-br from-gaming-gold to-gaming-orange rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Zap size={32} className="text-black" />
-              </div>
-              <h3 className="font-display text-xl font-bold text-white mb-2 uppercase">Fast Delivery</h3>
-              <p className="text-gray-400">Get your gear delivered in 24-48 hours</p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="text-center group">
-              <div className="w-16 h-16 bg-gradient-to-br from-gaming-gold to-gaming-orange rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Headphones size={32} className="text-black" />
-              </div>
-              <h3 className="font-display text-xl font-bold text-white mb-2 uppercase">24/7 Support</h3>
-              <p className="text-gray-400">Our team is always here to help you</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 📣 CTA BANNER */}
-      <section className="bg-gradient-to-r from-gaming-orange via-gaming-gold to-gaming-orange py-16">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-display text-4xl md:text-5xl font-black uppercase text-black mb-4">
-            Ready to Dominate?
-          </h2>
-          <p className="text-black/80 text-xl mb-8">
-            Join thousands of gamers who trust us for their gaming needs
-          </p>
-          <button 
-            onClick={scrollToProducts}
-            className="bg-black text-gaming-gold font-bold px-12 py-4 rounded-xl text-lg uppercase hover:scale-105 transition-all shadow-2xl"
-          >
-            Start Shopping
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default HomePage;
+              <div className="text-6xl mb-4">🔍</div>
+              <div className="text-gray-400 text-xl">No products match your filters.</div>
+              <p className="text-gray
