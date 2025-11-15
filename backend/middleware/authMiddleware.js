@@ -1,44 +1,20 @@
-import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+// backend/middleware/auth.js
+const jwt = require('jsonwebtoken');
 
-// Protect Routes (User must be logged in)
-export const protect = async (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   try {
-    let token;
-
-    // 1) Prefer HttpOnly cookie
-    if (req.cookies?.token) {
-      token = req.cookies.token;
-    }
-
-    // 2) Fallback for API tools like Postman
-    else if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
     if (!token) {
-      return res.status(401).json({ message: "Not authorized. No token." });
+      return res.status(401).json({ message: 'No token, authorization denied' });
     }
-
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = await User.findById(decoded.id).select("-password");
-    if (!req.user)
-      return res.status(401).json({ message: "User no longer exists." });
-
+    req.userId = decoded.userId;
     next();
-  } catch (err) {
-    console.error("Auth error:", err.message);
-    return res.status(401).json({ message: "Invalid token." });
+  } catch (error) {
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
-// Admin-only routes
-export const adminOnly = (req, res, next) => {
-  if (!req.user?.isAdmin)
-    return res.status(403).json({ message: "Admin access only" });
-  next();
-};
+module.exports = authMiddleware;
