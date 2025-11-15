@@ -9,7 +9,7 @@ import HomePage from './pages/HomePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import RegisterPage from './pages/SignupPage';
 import CheckoutPage from './pages/CheckoutPage';
 
 function App() {
