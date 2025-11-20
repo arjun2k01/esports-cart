@@ -3,16 +3,6 @@ import mongoose from 'mongoose';
 import app from '../server.js';
 import User from '../models/userModel.js';
 
-// Helper function to extract cookie value
-const extractCookie = (setCookieArray) => {
-  if (!setCookieArray || !Array.isArray(setCookieArray)) return null;
-  
-  // Get the cookie string and extract just the jwt=value part
-  const cookieString = setCookieArray[0]; // Usually 'jwt=xxxxx; Path=/; HttpOnly; ...'
-  const cookieValue = cookieString.split(';')[0]; // Gets 'jwt=xxxxx'
-  return cookieValue;
-};
-
 describe('Product Endpoints', () => {
   let adminCookie;
   let userCookie;
@@ -23,7 +13,7 @@ describe('Product Endpoints', () => {
     // Clean up any existing test users
     await User.deleteMany({ email: { $in: ['admin@test.com', 'user@test.com'] } });
     
-    // Create and setup admin user
+    // Create admin user
     await request(app)
       .post('/api/users/register')
       .send({
@@ -46,10 +36,12 @@ describe('Product Endpoints', () => {
         password: 'Admin1234'
       });
     
-    adminCookie = extractCookie(adminLoginRes.headers['set-cookie']);
+    // Extract the cookie string (first cookie in the array)
+    const cookies = adminLoginRes.headers['set-cookie'];
+    adminCookie = cookies[0].split(';')[0]; // Extract just "token=value" part
+    
     expect(adminLoginRes.statusCode).toBe(200);
-    expect(adminCookie).toBeDefined();
-    console.log('Admin cookie:', adminCookie); // Debug log
+    expect(adminCookie).toBeTruthy();
 
     // Create regular user
     await request(app)
@@ -68,13 +60,16 @@ describe('Product Endpoints', () => {
         password: 'User1234'
       });
     
-    userCookie = extractCookie(userLoginRes.headers['set-cookie']);
+    // Extract the cookie string
+    const userCookies = userLoginRes.headers['set-cookie'];
+    userCookie = userCookies[0].split(';')[0]; // Extract just "token=value" part
+    
     expect(userLoginRes.statusCode).toBe(200);
-    expect(userCookie).toBeDefined();
-    console.log('User cookie:', userCookie); // Debug log
+    expect(userCookie).toBeTruthy();
   });
 
   afterAll(async () => {
+    // Clean up and close connection
     await User.deleteMany({ email: { $in: ['admin@test.com', 'user@test.com'] } });
     await mongoose.connection.close();
   });
@@ -82,6 +77,7 @@ describe('Product Endpoints', () => {
   describe('GET /api/products', () => {
     it('should get all products', async () => {
       const res = await request(app).get('/api/products');
+
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -91,7 +87,7 @@ describe('Product Endpoints', () => {
     it('should create product as admin', async () => {
       const res = await request(app)
         .post('/api/products')
-        .set('Cookie', [adminCookie]) // Now properly formatted
+        .set('Cookie', adminCookie)
         .send({
           name: 'Test Product',
           price: 999,
@@ -109,7 +105,7 @@ describe('Product Endpoints', () => {
     it('should fail without admin rights', async () => {
       const res = await request(app)
         .post('/api/products')
-        .set('Cookie', [userCookie]) // Now properly formatted
+        .set('Cookie', userCookie)
         .send({
           name: 'Test Product 2',
           price: 999,
