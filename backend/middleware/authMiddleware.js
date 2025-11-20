@@ -25,10 +25,19 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Changed from decoded.id to decoded.userId
+    // Fetch user with isAdmin field included
     req.user = await User.findById(decoded.userId).select("-password");
     
+    // DEBUG LOGS - Remove after fixing
+    console.log('Auth middleware - decoded userId:', decoded.userId);
+    console.log('Auth middleware - found user:', req.user ? { 
+      id: req.user._id, 
+      email: req.user.email, 
+      isAdmin: req.user.isAdmin 
+    } : null);
+    
     if (!req.user) {
+      console.log('Auth middleware - User not found in database');
       return res.status(401).json({ message: "User no longer exists." });
     }
 
@@ -41,6 +50,11 @@ export const protect = async (req, res, next) => {
 
 // Admin-only routes
 export const adminOnly = (req, res, next) => {
+  console.log('Admin middleware - checking user:', req.user ? {
+    email: req.user.email,
+    isAdmin: req.user.isAdmin
+  } : null);
+  
   if (!req.user?.isAdmin) {
     return res.status(403).json({ message: "Admin access only" });
   }
