@@ -36,11 +36,9 @@ describe('Product Endpoints', () => {
         password: 'Admin1234'
       });
     
-    // Extract the cookie string with safety check
-    const adminCookies = adminLoginRes.headers['set-cookie'];
-    if (adminCookies && adminCookies.length > 0) {
-      adminCookie = adminCookies[0].split(';')[0];
-    }
+    // Extract the cookie string (first cookie in the array)
+    const cookies = adminLoginRes.headers['set-cookie'];
+    adminCookie = cookies[0].split(';')[0]; // Extract just "token=value" part
     
     expect(adminLoginRes.statusCode).toBe(200);
     expect(adminCookie).toBeTruthy();
@@ -62,11 +60,9 @@ describe('Product Endpoints', () => {
         password: 'User1234'
       });
     
-    // Extract the cookie string with safety check
+    // Extract the cookie string
     const userCookies = userLoginRes.headers['set-cookie'];
-    if (userCookies && userCookies.length > 0) {
-      userCookie = userCookies[0].split(';')[0];
-    }
+    userCookie = userCookies[0].split(';')[0]; // Extract just "token=value" part
     
     expect(userLoginRes.statusCode).toBe(200);
     expect(userCookie).toBeTruthy();

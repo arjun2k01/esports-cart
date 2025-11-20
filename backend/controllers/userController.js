@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken"; // ← ADD THIS IMPORT
 
 // REGISTER USER
 export const registerUser = async (req, res) => {
@@ -19,11 +20,17 @@ export const registerUser = async (req, res) => {
     // 🔥 Set cookie
     generateToken(res, user._id);
 
+    // ← ADD: Create token for response body (for testing with Bearer auth)
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      token: token, // ← ADD THIS LINE
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -46,11 +53,17 @@ export const loginUser = async (req, res) => {
     // 🔥 Set cookie
     generateToken(res, user._id);
 
+    // ← ADD: Create token for response body (for testing with Bearer auth)
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      token: token, // ← ADD THIS LINE
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
