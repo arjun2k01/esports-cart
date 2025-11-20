@@ -10,6 +10,12 @@
     "data:import": "node seeder.js",
     "data:destroy": "node seeder.js -d"
   },
+  "jest":{
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ]
+   },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -31,6 +37,9 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   }
 }
