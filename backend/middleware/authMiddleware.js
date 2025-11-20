@@ -25,9 +25,12 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = await User.findById(decoded.id).select("-password");
-    if (!req.user)
+    // Changed from decoded.id to decoded.userId
+    req.user = await User.findById(decoded.userId).select("-password");
+    
+    if (!req.user) {
       return res.status(401).json({ message: "User no longer exists." });
+    }
 
     next();
   } catch (err) {
@@ -38,7 +41,8 @@ export const protect = async (req, res, next) => {
 
 // Admin-only routes
 export const adminOnly = (req, res, next) => {
-  if (!req.user?.isAdmin)
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: "Admin access only" });
+  }
   next();
 };
