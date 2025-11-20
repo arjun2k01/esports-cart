@@ -8,7 +8,18 @@ describe('Product Endpoints', () => {
   let userToken;
 
   beforeAll(async () => {
-    await mongoose.connect(process.env.MONGO_URI);
+    // Connect to MongoDB if not already connected
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(process.env.MONGO_URI);
+    }
+    
+    // Wait for connection to be fully ready
+    if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB connection ready');
+    } else {
+      await mongoose.connection.asPromise();
+      console.log('MongoDB connection established');
+    }
     
     // Clean up any existing test users
     await User.deleteMany({ email: { $in: ['admin@test.com', 'user@test.com'] } });
@@ -32,7 +43,8 @@ describe('Product Endpoints', () => {
     // Verify the user is actually admin now
     console.log('Admin user after update:', {
       email: updatedAdmin.email,
-      isAdmin: updatedAdmin.isAdmin
+      isAdmin: updatedAdmin.isAdmin,
+      id: updatedAdmin._id
     });
 
     // Login as admin
@@ -48,7 +60,8 @@ describe('Product Endpoints', () => {
     console.log('Admin login response:', {
       status: adminLoginRes.statusCode,
       hasToken: !!adminToken,
-      isAdmin: adminLoginRes.body.isAdmin
+      isAdmin: adminLoginRes.body.isAdmin,
+      userId: adminLoginRes.body._id
     });
     
     expect(adminLoginRes.statusCode).toBe(200);
