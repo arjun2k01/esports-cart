@@ -1,23 +1,21 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
-import app from '../server.js'; // You'll need to export app from server.js
+import app from '../server.js';
 
 describe('Auth Endpoints', () => {
   beforeAll(async () => {
-    // Connect to test database
     await mongoose.connect(process.env.MONGO_URI);
   });
 
   afterAll(async () => {
-    // Clean up and close connection
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
   });
 
-  describe('POST /api/users/signup', () => {
+  describe('POST /api/users/register', () => {
     it('should create a new user', async () => {
       const res = await request(app)
-        .post('/api/users/signup')
+        .post('/api/users/register')
         .send({
           name: 'Test User',
           email: 'test@example.com',
@@ -31,7 +29,7 @@ describe('Auth Endpoints', () => {
 
     it('should fail with invalid email', async () => {
       const res = await request(app)
-        .post('/api/users/signup')
+        .post('/api/users/register')
         .send({
           name: 'Test User',
           email: 'invalid-email',
@@ -43,7 +41,7 @@ describe('Auth Endpoints', () => {
 
     it('should fail with short password', async () => {
       const res = await request(app)
-        .post('/api/users/signup')
+        .post('/api/users/register')
         .send({
           name: 'Test User',
           email: 'test2@example.com',
@@ -58,7 +56,7 @@ describe('Auth Endpoints', () => {
     beforeEach(async () => {
       // Create a user first
       await request(app)
-        .post('/api/users/signup')
+        .post('/api/users/register')
         .send({
           name: 'Login Test',
           email: 'login@example.com',

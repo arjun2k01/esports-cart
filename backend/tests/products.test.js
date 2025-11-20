@@ -12,7 +12,7 @@ describe('Product Endpoints', () => {
 
     // Create admin user
     const adminRes = await request(app)
-      .post('/api/users/signup')
+      .post('/api/users/register')
       .send({
         name: 'Admin User',
         email: 'admin@test.com',
@@ -37,7 +37,7 @@ describe('Product Endpoints', () => {
 
     // Create regular user
     const userRes = await request(app)
-      .post('/api/users/signup')
+      .post('/api/users/register')
       .send({
         name: 'Regular User',
         email: 'user@test.com',
