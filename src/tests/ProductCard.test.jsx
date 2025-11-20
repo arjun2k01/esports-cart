@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import ProductCard from '../ProductCard';
+// FIX: Correct path from "../ProductCard" to "../components/ProductCard"
+import ProductCard from '../components/ProductCard';
 
 const mockProduct = {
   _id: '1',
@@ -65,9 +66,12 @@ describe('ProductCard Component', () => {
       </BrowserRouter>
     );
 
+    // Note: In your component, the button text is "Add" inside the component, 
+    // ensuring the test searches for the correct text or aria-label is good practice.
+    // Based on your component code, it renders "Add".
     const addButton = screen.getByRole('button', { name: /add/i });
     fireEvent.click(addButton);
 
-    expect(mockAddToCart).toHaveBeenCalledWith(mockProduct);
+    expect(mockAddToCart).toHaveBeenCalledWith(mockProduct, 1);
   });
 });

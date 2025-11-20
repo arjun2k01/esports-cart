@@ -5,11 +5,19 @@ const generateToken = (res, userId) => {
     expiresIn: "30d",
   });
 
+  // Determine if we are in a secure environment (Production)
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  // Tests run in "test" environment, Local dev runs in "development"
+  const isTestOrDev = process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development";
+
   res.cookie("token", token, {
     httpOnly: true,
-    secure: true,          // Required for HTTPS (Vercel + Render)
-    sameSite: "none",      // Required for cross-site cookies
-    path: "/",             // Ensure cookie is available to all routes
+    // ✅ DISABLE 'secure' for tests/dev so cookies work over HTTP
+    secure: !isTestOrDev, 
+    // ✅ Use 'lax' for local dev/test to avoid SameSite issues with non-secure cookies
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };

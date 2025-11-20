@@ -18,7 +18,10 @@ import aiRoutes from "./routes/aiRoutes.js";
 dotenv.config();
 
 // Connect DB
-connectDB();
+// FIX: Only connect if NOT in test mode. Tests handle their own connection.
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+}
 
 const app = express();
 

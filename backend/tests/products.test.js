@@ -4,12 +4,12 @@ import app from '../server.js';
 import User from '../models/userModel.js';
 
 describe('Product Endpoints', () => {
-  let adminToken;
-  let userToken;
+  let adminAgent;
+  let userAgent;
 
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI);
-
+    
     // Create admin user
     const adminRes = await request(app)
       .post('/api/users/register')
@@ -18,22 +18,21 @@ describe('Product Endpoints', () => {
         email: 'admin@test.com',
         password: 'Admin1234'
       });
-    
+
     // Make user admin
     await User.findOneAndUpdate(
       { email: 'admin@test.com' },
       { isAdmin: true }
     );
 
-    // Login as admin to get token
-    const loginRes = await request(app)
+    // Create admin agent and login
+    adminAgent = request.agent(app);
+    await adminAgent
       .post('/api/users/login')
       .send({
         email: 'admin@test.com',
         password: 'Admin1234'
       });
-    
-    adminToken = loginRes.body.token;
 
     // Create regular user
     const userRes = await request(app)
@@ -43,11 +42,19 @@ describe('Product Endpoints', () => {
         email: 'user@test.com',
         password: 'User1234'
       });
-    
-    userToken = userRes.body.token;
+
+    // Create user agent and login
+    userAgent = request.agent(app);
+    await userAgent
+      .post('/api/users/login')
+      .send({
+        email: 'user@test.com',
+        password: 'User1234'
+      });
   });
 
   afterAll(async () => {
+    // Clean up and close connection
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
   });
@@ -55,7 +62,7 @@ describe('Product Endpoints', () => {
   describe('GET /api/products', () => {
     it('should get all products', async () => {
       const res = await request(app).get('/api/products');
-      
+
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -63,9 +70,8 @@ describe('Product Endpoints', () => {
 
   describe('POST /api/products', () => {
     it('should create product as admin', async () => {
-      const res = await request(app)
+      const res = await adminAgent
         .post('/api/products')
-        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Test Product',
           price: 999,
@@ -80,14 +86,15 @@ describe('Product Endpoints', () => {
     });
 
     it('should fail without admin rights', async () => {
-      const res = await request(app)
+      const res = await userAgent
         .post('/api/products')
-        .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'Test Product',
           price: 999,
           image: 'https://example.com/image.jpg',
-          category: 'Skins'
+          category: 'Skins',
+          brand: 'TestBrand',
+          countInStock: 10
         });
 
       expect(res.statusCode).toBe(403);
@@ -98,7 +105,11 @@ describe('Product Endpoints', () => {
         .post('/api/products')
         .send({
           name: 'Test Product',
-          price: 999
+          price: 999,
+          image: 'https://example.com/image.jpg',
+          category: 'Skins',
+          brand: 'TestBrand',
+          countInStock: 10
         });
 
       expect(res.statusCode).toBe(401);
