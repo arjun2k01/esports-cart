@@ -12,11 +12,11 @@
      "test": "jest --watchAll --verbose",
     "test:ci": "jest --coverage --forceExit"
   },
-  "jest":{
+  "jest": {
     "testEnvironment": "node",
-    "coveragePathIgnorePatterns": [
-      "/node_modules/"
-    ]
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "coveragePathIgnorePatterns": ["/node_modules/"]
    },
   "keywords": [],
   "author": "",
