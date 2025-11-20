@@ -39,4 +39,4 @@ jobs:
         env:
           NODE_ENV: test
           MONGO_URI=mongodb+srv://esportscart:esportsop@esportscart.ewhp5wa.mongodb.net/esportsCart?retryWrites=true&w=majority&appName=esportsCart
-          JWT_SECRET: test-secret-key-for-ci-testing-minimum-32-chars
+          JWT_SECRET: aVerySecureSecretKey123!@#
