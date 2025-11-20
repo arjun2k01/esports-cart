@@ -1,5 +1,8 @@
 name: CI Pipeline
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ main ]
@@ -9,13 +12,13 @@ on:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
-    
+
     services:
       mongodb:
-        image: mongo:latest
+        image: mongo:6.0
         ports:
           - 27017:27017
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,6 +27,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
 
       - name: Install backend dependencies
         working-directory: ./backend

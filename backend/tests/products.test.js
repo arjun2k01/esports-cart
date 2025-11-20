@@ -4,14 +4,17 @@ import app from '../server.js';
 import User from '../models/userModel.js';
 
 describe('Product Endpoints', () => {
-  let adminAgent;
-  let userAgent;
+  let adminCookies;
+  let userCookies;
 
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI);
     
+    // Clean up any existing test users
+    await User.deleteMany({ email: { $in: ['admin@test.com', 'user@test.com'] } });
+    
     // Create admin user
-    const adminRes = await request(app)
+    const adminRegRes = await request(app)
       .post('/api/users/register')
       .send({
         name: 'Admin User',
@@ -25,17 +28,21 @@ describe('Product Endpoints', () => {
       { isAdmin: true }
     );
 
-    // Create admin agent and login
-    adminAgent = request.agent(app);
-    await adminAgent
+    // Login as admin and get cookies
+    const adminLoginRes = await request(app)
       .post('/api/users/login')
       .send({
         email: 'admin@test.com',
         password: 'Admin1234'
       });
+    
+    // Extract cookies from response
+    adminCookies = adminLoginRes.headers['set-cookie'];
+    expect(adminLoginRes.statusCode).toBe(200);
+    expect(adminCookies).toBeDefined();
 
     // Create regular user
-    const userRes = await request(app)
+    const userRegRes = await request(app)
       .post('/api/users/register')
       .send({
         name: 'Regular User',
@@ -43,19 +50,23 @@ describe('Product Endpoints', () => {
         password: 'User1234'
       });
 
-    // Create user agent and login
-    userAgent = request.agent(app);
-    await userAgent
+    // Login as user and get cookies
+    const userLoginRes = await request(app)
       .post('/api/users/login')
       .send({
         email: 'user@test.com',
         password: 'User1234'
       });
+    
+    // Extract cookies from response
+    userCookies = userLoginRes.headers['set-cookie'];
+    expect(userLoginRes.statusCode).toBe(200);
+    expect(userCookies).toBeDefined();
   });
 
   afterAll(async () => {
     // Clean up and close connection
-    await mongoose.connection.dropDatabase();
+    await User.deleteMany({ email: { $in: ['admin@test.com', 'user@test.com'] } });
     await mongoose.connection.close();
   });
 
@@ -70,15 +81,17 @@ describe('Product Endpoints', () => {
 
   describe('POST /api/products', () => {
     it('should create product as admin', async () => {
-      const res = await adminAgent
+      const res = await request(app)
         .post('/api/products')
+        .set('Cookie', adminCookies)
         .send({
           name: 'Test Product',
           price: 999,
           image: 'https://example.com/image.jpg',
           category: 'Skins',
           brand: 'TestBrand',
-          countInStock: 10
+          countInStock: 10,
+          description: 'Test product description'
         });
 
       expect(res.statusCode).toBe(201);
@@ -86,15 +99,17 @@ describe('Product Endpoints', () => {
     });
 
     it('should fail without admin rights', async () => {
-      const res = await userAgent
+      const res = await request(app)
         .post('/api/products')
+        .set('Cookie', userCookies)
         .send({
-          name: 'Test Product',
+          name: 'Test Product 2',
           price: 999,
           image: 'https://example.com/image.jpg',
           category: 'Skins',
           brand: 'TestBrand',
-          countInStock: 10
+          countInStock: 10,
+          description: 'Test product description'
         });
 
       expect(res.statusCode).toBe(403);
@@ -104,12 +119,13 @@ describe('Product Endpoints', () => {
       const res = await request(app)
         .post('/api/products')
         .send({
-          name: 'Test Product',
+          name: 'Test Product 3',
           price: 999,
           image: 'https://example.com/image.jpg',
           category: 'Skins',
           brand: 'TestBrand',
-          countInStock: 10
+          countInStock: 10,
+          description: 'Test product description'
         });
 
       expect(res.statusCode).toBe(401);
