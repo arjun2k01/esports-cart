@@ -4,8 +4,8 @@ import app from '../server.js';
 import User from '../models/userModel.js';
 
 describe('Product Endpoints', () => {
-  let adminCookie;
-  let userCookie;
+  let adminToken;
+  let userToken;
 
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI);
@@ -22,13 +22,20 @@ describe('Product Endpoints', () => {
         password: 'Admin1234'
       });
 
-    // Make user admin
-    await User.findOneAndUpdate(
+    // Make user admin - WAIT for the update to complete
+    const updatedAdmin = await User.findOneAndUpdate(
       { email: 'admin@test.com' },
-      { isAdmin: true }
+      { isAdmin: true },
+      { new: true } // Return the updated document
     );
+    
+    // Verify the user is actually admin now
+    console.log('Admin user after update:', {
+      email: updatedAdmin.email,
+      isAdmin: updatedAdmin.isAdmin
+    });
 
-    // Login as admin and extract cookie
+    // Login as admin
     const adminLoginRes = await request(app)
       .post('/api/users/login')
       .send({
@@ -36,12 +43,17 @@ describe('Product Endpoints', () => {
         password: 'Admin1234'
       });
     
-    // Extract the cookie string (first cookie in the array)
-    const cookies = adminLoginRes.headers['set-cookie'];
-    adminCookie = cookies[0].split(';')[0]; // Extract just "token=value" part
+    adminToken = adminLoginRes.body.token;
+    
+    console.log('Admin login response:', {
+      status: adminLoginRes.statusCode,
+      hasToken: !!adminToken,
+      isAdmin: adminLoginRes.body.isAdmin
+    });
     
     expect(adminLoginRes.statusCode).toBe(200);
-    expect(adminCookie).toBeTruthy();
+    expect(adminToken).toBeTruthy();
+    expect(adminLoginRes.body.isAdmin).toBe(true); // Verify admin status
 
     // Create regular user
     await request(app)
@@ -52,7 +64,7 @@ describe('Product Endpoints', () => {
         password: 'User1234'
       });
 
-    // Login as user and extract cookie
+    // Login as user
     const userLoginRes = await request(app)
       .post('/api/users/login')
       .send({
@@ -60,13 +72,11 @@ describe('Product Endpoints', () => {
         password: 'User1234'
       });
     
-    // Extract the cookie string
-    const userCookies = userLoginRes.headers['set-cookie'];
-    userCookie = userCookies[0].split(';')[0]; // Extract just "token=value" part
+    userToken = userLoginRes.body.token;
     
     expect(userLoginRes.statusCode).toBe(200);
-    expect(userCookie).toBeTruthy();
-  });
+    expect(userToken).toBeTruthy();
+  }, 30000);
 
   afterAll(async () => {
     // Clean up and close connection
@@ -87,7 +97,7 @@ describe('Product Endpoints', () => {
     it('should create product as admin', async () => {
       const res = await request(app)
         .post('/api/products')
-        .set('Cookie', adminCookie)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Test Product',
           price: 999,
@@ -105,7 +115,7 @@ describe('Product Endpoints', () => {
     it('should fail without admin rights', async () => {
       const res = await request(app)
         .post('/api/products')
-        .set('Cookie', userCookie)
+        .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'Test Product 2',
           price: 999,
