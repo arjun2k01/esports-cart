@@ -40,7 +40,6 @@ export const registerUser = async (req, res) => {
     });
 
     res.status(201).json({
-              console.log("[RESPONSE] Sending registration response:", { user: { _id: user._id, name: user.name, email: user.email }, token: !!token });Sending registration response:", { user: { _id: user._id, name: user.name, email: user.email }, token: !!token });
 user: {
       _id: user._id,
       name: user.name,
