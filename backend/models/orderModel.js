@@ -27,6 +27,7 @@ const orderSchema = new mongoose.Schema(
     shippingAddress: {
       address: { type: String, required: true },
       city: { type: String, required: true },
+          state: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
     },
@@ -41,6 +42,21 @@ const orderSchema = new mongoose.Schema(
     type: String,
     enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
     default: "pending"
+  },
+      subtotal: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  tax: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  shipping: {
+    type: Number,
+    required: true,
+    default: 0
   },
 
     totalPrice: {
