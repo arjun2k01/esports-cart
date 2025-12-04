@@ -1,5 +1,6 @@
 import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
+import { sendOrderConfirmation } from "../utils/emailService.js";
 
 // CREATE ORDER (SERVER VALIDATES PRICE!)
 export const createOrder = async (req, res) => {
@@ -46,6 +47,12 @@ export const createOrder = async (req, res) => {
         $inc: { countInStock: -item.qty },
       });
     }
+
+ // Send order confirmation email (non-blocking)
+ await sendOrderConfirmation(req.user.email, order).catch(err => {
+   console.log('Email sending failed:', err.message);
+ });
+
 
     res.status(201).json(order);
   } catch (err) {
