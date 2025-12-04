@@ -8,22 +8,33 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validation
-    if (!name || !email || !password)
+    console.log("Registering user:", { name, email });
+
+    if (!name || !email || !password) {
+      console.log("Missing fields");
       return res.status(400).json({ message: "All fields required" });
+    }
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists)
+    const userExists = await User.findOne({ email }).catch(err => {
+      console.error("Error checking if user exists:", err);
+      throw err;
+    });
+
+    if (userExists) {
+      console.log("User already exists");
       return res.status(400).json({ message: "Email already registered" });
+    }
 
-    // Create user
-    const user = await User.create({ name, email, password });
+    console.log("Creating user...");
+    const user = await User.create({ name, email, password }).catch(err => {
+      console.error("Error creating user:", err.message, err.code);
+      throw err;
+    });
 
-    // Set cookie
+    console.log("User created successfully:", user._id);
+
     generateToken(res, user._id);
 
-    // Create token for response body
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '30d',
     });
@@ -36,18 +47,15 @@ export const registerUser = async (req, res) => {
       token: token,
     });
   } catch (err) {
-    console.error("Registration error:", err);
-    
-    // Handle MongoDB duplicate key error
+    console.error("Registration error:", err.message, err.code);
+
     if (err.code === 11000) {
-      const field = Object.keys(err.keyPattern)[0];
+      const field = Object.keys(err.keyPattern || {})[0] || "email";
       return res.status(400).json({
         message: `${field} already exists`,
-        field: field,
       });
     }
 
-    // Handle Mongoose validation errors
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map(e => e.message);
       return res.status(400).json({
@@ -58,7 +66,6 @@ export const registerUser = async (req, res) => {
 
     res.status(500).json({
       message: err.message || "Registration failed",
-      error: process.env.NODE_ENV === "development" ? err.toString() : undefined,
     });
   }
 };
@@ -76,10 +83,8 @@ export const loginUser = async (req, res) => {
     if (!match)
       return res.status(401).json({ message: "Invalid email or password" });
 
-    // Set cookie
     generateToken(res, user._id);
 
-    // Create token for response body
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '30d',
     });
@@ -95,7 +100,6 @@ export const loginUser = async (req, res) => {
     console.error("Login error:", err);
     res.status(500).json({
       message: err.message || "Login failed",
-      error: process.env.NODE_ENV === "development" ? err.toString() : undefined,
     });
   }
 };
