@@ -17,15 +17,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
-(async () => {
-
-
-// Connect DB
-// FIX: Only connect if NOT in test mode. Tests handle their own connection.
-if (process.env.NODE_ENV !== 'test') {
-  await connectDB();
-}
-
+// Create Express app first (before async operations)
 const app = express();
 
 // ⭐ Required for Render proxy + secure cookies
@@ -56,7 +48,7 @@ app.use(
       // Allow backend-to-backend or mobile requests (no origin)
       if (!origin) return callback(null, true);
 
-      const vercelDomain = /\.vercel\.app$/;     // Allow any *.vercel.app (production + preview)
+      const vercelDomain = /\.vercel\.app$/;  // Allow any *.vercel.app (production + preview)
       const localhost = /^http:\/\/localhost:\d+$/; // Allow localhost for dev
 
       if (vercelDomain.test(origin) || localhost.test(origin)) {
@@ -98,12 +90,18 @@ const PORT = process.env.PORT || 5000;
 
 // At the end of server.js
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  (async () => {
+    try {
+      // Connect DB
+      await connectDB();
+      
+      // Start server
+      app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    } catch (err) {
+      console.error("Failed to start server:", err);
+      process.exit(1);
+    }
+  })();
 }
-  
-})().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
-});
 
 export default app;
