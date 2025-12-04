@@ -93,11 +93,13 @@ export const loginUser = async (req, res) => {
     });
 
     res.json({
+      user: {
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      token: token,
+    },
+    token: token,
     });
   } catch (err) {
     console.error("Login error:", err);
