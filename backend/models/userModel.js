@@ -29,7 +29,31 @@ const userSchema = new mongoose.Schema(
   },
     isAdmin: {
       type: Boolean,
-      default: false,
+      default: false,,
+    phone: {
+      type: String,
+      default: '',
+    },
+    address: {
+      type: String,
+      default: '',
+    },
+    city: {
+      type: String,
+      default: '',
+    },
+    state: {
+      type: String,
+      default: '',
+    },
+    postalCode: {
+      type: String,
+      default: '',
+    },
+    country: {
+      type: String,
+      default: 'India',
+    }
     },
   },
   { timestamps: true }
