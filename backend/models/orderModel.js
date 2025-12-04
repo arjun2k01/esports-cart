@@ -34,9 +34,14 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ["COD", "Stripe", "Razorpay"],
-      default: "COD",
+    enum: ["cod", "stripe", "razorpay"],      default: "cod",
     },
+
+      orderStatus: {
+    type: String,
+    enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+    default: "pending"
+  },
 
     totalPrice: {
       type: Number,
