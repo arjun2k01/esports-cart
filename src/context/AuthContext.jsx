@@ -80,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         toast.success(`Welcome to E-Sports Cart, ${data.user.name}!`);
         return { success: true };
       }
+       return { success: false, message: 'No token received from server' };
     } catch (error) {
       const message = error.response?.data?.message || 'Signup failed. Please try again.';
       toast.error(message);
