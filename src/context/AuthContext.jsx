@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }) => {
         toast.success(`Welcome back, ${data.user.name}!`);
         return { success: true };
       }
+          return { success: false, message: 'No token received from server' };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed. Please try again.';
       toast.error(message);
