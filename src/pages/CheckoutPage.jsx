@@ -60,7 +60,7 @@ const CheckoutPage = () => {
       if (data._id) {
         clearCart();
         toast.success('Order placed successfully!');
-        navigate(`/order/${data._id}`);
+        navigate(`/order-confirmation/${data._id}`);
       }
     } catch (error) {
       console.error('Order placement error:', error);
