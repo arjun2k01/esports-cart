@@ -40,11 +40,13 @@ export const registerUser = async (req, res) => {
     });
 
     res.status(201).json({
+user: {
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      token: token,
+    },
+    token: token,
     });
   } catch (err) {
     console.error("Registration error:", err.message, err.code);
