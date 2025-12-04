@@ -17,10 +17,13 @@ import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
+(async () => {
+
+
 // Connect DB
 // FIX: Only connect if NOT in test mode. Tests handle their own connection.
 if (process.env.NODE_ENV !== 'test') {
-  connectDB();
+  await connectDB();
 }
 
 const app = express();
@@ -97,5 +100,10 @@ const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
+  
+})().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
 
 export default app;
