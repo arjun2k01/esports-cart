@@ -140,3 +140,47 @@ export const deleteUser = async (req, res) => {
   await user.deleteOne();
   res.json({ message: "User deleted" });
 };
+
+// UPDATE USER PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, phone, address, city, state, postalCode, country } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Update fields if provided
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (city) user.city = city;
+    if (state) user.state = state;
+    if (postalCode) user.postalCode = postalCode;
+    if (country) user.country = country;
+    
+    await user.save();
+    
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        postalCode: user.postalCode,
+        country: user.country,
+      },
+    });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({
+      message: err.message || "Profile update failed",
+    });
+  }
+}
+};
