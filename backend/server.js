@@ -8,6 +8,7 @@ import mongoSanitize from "express-mongo-sanitize";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
+import User from "./models/userModel.js";
 import passport from "passport";
 import session from "express-session";
 import googleStrategy from "./config/googleStrategy.js";
@@ -85,7 +86,7 @@ passport.use(googleStrategy);
 passport.serializeUser((user, done) => done(null, user._id));
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await require("./models/userModel.js").default.findById(id);
+        const user = await User.findById(id);
     done(null, user);
   } catch (err) {
     done(err);
