@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: true,
     },
+      googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
     isAdmin: {
       type: Boolean,
       default: false,
