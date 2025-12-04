@@ -83,3 +83,23 @@ export const updateOrderDelivered = async (req, res) => {
 
   res.json({ message: "Order marked as delivered" });
 };
+
+// GET SINGLE ORDER BY ID (USER CAN GET THEIR OWN ORDERS)
+export const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate("orderItems.product");
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Verify user owns this order
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorised" });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
