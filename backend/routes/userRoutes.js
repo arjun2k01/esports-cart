@@ -6,6 +6,7 @@ import {
   getProfile,
   getUsers,
   deleteUser,
+  updateProfile,
 } from "../controllers/userController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -18,6 +19,7 @@ router.post("/logout", logoutUser);
 
 // User Protected
 router.get("/profile", protect, getProfile);
+router.put("/profile", protect, updateProfile);
 
 // Admin
 router.get("/", protect, adminOnly, getUsers);
