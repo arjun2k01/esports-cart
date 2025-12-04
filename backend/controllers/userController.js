@@ -33,7 +33,11 @@ export const registerUser = async (req, res) => {
       token: token, // ← ADD THIS LINE
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+console.error("❌ Registration error:", err);
+  res.status(500).json({
+    message: err.message || "Registration failed",
+    error: process.env.NODE_ENV === "development" ? err.toString() : undefined,
+  });
   }
 };
 
@@ -66,7 +70,11 @@ export const loginUser = async (req, res) => {
       token: token, // ← ADD THIS LINE
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+console.error("❌ Login error:", err);
+  res.status(500).json({
+    message: err.message || "Login failed",
+    error: process.env.NODE_ENV === "development" ? err.toString() : undefined,
+  });
   }
 };
 
