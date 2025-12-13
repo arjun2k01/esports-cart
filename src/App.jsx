@@ -29,6 +29,7 @@ import AdminProductsPage from "./pages/admin/AdminProductsPage.jsx";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage.jsx";
 import AdminProductEditPage from "./pages/admin/AdminProductEditPage.jsx";
 import AdminUserEditPage from "./pages/admin/AdminUserEditPage.jsx";
+import AdminProductCreatePage from "./pages/admin/AdminProductCreatePage.jsx";
 
 export default function App() {
   return (
@@ -58,6 +59,8 @@ export default function App() {
 
           {/* Admin only */}
           <Route element={<AdminRoute />}>
+          <Route path="/admin/products/new" element={<AdminProductCreatePage />} />
+
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/users/:id/edit" element={<AdminUserEditPage />} />
 
