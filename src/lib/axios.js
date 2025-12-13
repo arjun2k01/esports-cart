@@ -1,114 +1,137 @@
-// frontend/src/lib/axios.js
-import axios from "axios";
-import { triggerUnauthorized } from "./apiGuards";
+// src/pages/OrderConfirmationPage.jsx
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import api from "../lib/axios";
+import { useAuth } from "../context/AuthContext.jsx";
 
-/**
- * Cookie-only auth + CSRF
- * No Authorization headers, no localStorage tokens.
- */
+const OrderConfirmationPage = () => {
+  const params = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+  // Support both param names (repo had inconsistent naming)
+  const orderId = params.id || params.orderId;
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-// ---------------- CSRF ----------------
-let csrfToken = null;
-let csrfPromise = null;
-
-async function fetchCsrfToken() {
-  if (csrfPromise) return csrfPromise;
-
-  csrfPromise = api
-    .get("/api/auth/csrf-token")
-    .then((res) => {
-      csrfToken = res?.data?.csrfToken || null;
-      return csrfToken;
-    })
-    .catch(() => {
-      csrfToken = null;
-      return null;
-    })
-    .finally(() => {
-      csrfPromise = null;
-    });
-
-  return csrfPromise;
-}
-
-function isWriteMethod(method) {
-  return ["post", "put", "patch", "delete"].includes(
-    String(method || "").toLowerCase()
-  );
-}
-
-// ---------------- REQUEST ----------------
-api.interceptors.request.use(
-  async (config) => {
-    // Ensure no bearer tokens sneak in
-    if (config.headers?.Authorization) {
-      delete config.headers.Authorization;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.error("Please login to view order details");
+      navigate("/login", { state: { from: `/order-confirmation/${orderId}` } });
+      return;
     }
 
-    if (isWriteMethod(config.method)) {
-      if (!csrfToken) {
-        await fetchCsrfToken();
+    let alive = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/api/orders/${orderId}`);
+        if (alive) setOrder(res.data || null);
+      } catch (e) {
+        console.error(e);
+        toast.error(e?.response?.data?.message || "Failed to load order");
+      } finally {
+        if (alive) setLoading(false);
       }
-      if (csrfToken) {
-        config.headers["X-CSRF-Token"] = csrfToken;
-      }
-    }
+    })();
 
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+    return () => {
+      alive = false;
+    };
+  }, [isAuthenticated, orderId, navigate]);
 
-// ---------------- RESPONSE ----------------
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error?.config;
-    const status = error?.response?.status;
-
-    // 401 = session expired / invalid cookie
-    if (status === 401) {
-      triggerUnauthorized({
-        message: error?.response?.data?.message || "Session expired",
-      });
-      return Promise.reject(error);
-    }
-
-    // CSRF invalid → refresh token once and retry
-    const isCsrf403 =
-      status === 403 &&
-      typeof error?.response?.data?.message === "string" &&
-      error.response.data.message.toLowerCase().includes("csrf");
-
-    if (isCsrf403 && original && !original.__csrfRetry) {
-      original.__csrfRetry = true;
-      csrfToken = null;
-      await fetchCsrfToken();
-      if (csrfToken) {
-        original.headers = original.headers || {};
-        original.headers["X-CSRF-Token"] = csrfToken;
-      }
-      return api(original);
-    }
-
-    return Promise.reject(error);
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        <div className="text-sm opacity-70">Loading order…</div>
+      </div>
+    );
   }
-);
 
-export default api;
+  if (!order) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        <div className="p-3 rounded border border-red-400/40 bg-red-500/10">
+          Couldn’t load this order.
+        </div>
+        <div className="mt-4">
+          <Link className="underline" to="/orders">
+            Back to Orders
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-// Optional warm-up
-export async function warmupCsrf() {
-  return fetchCsrfToken();
-}
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-10">
+      <h1 className="text-2xl font-semibold">Order Confirmed ✅</h1>
+      <p className="mt-1 opacity-70">
+        Order ID: <span className="font-mono">{order._id}</span>
+      </p>
+
+      <div className="mt-6 grid md:grid-cols-2 gap-6">
+        <div className="rounded-xl border border-white/10 p-4">
+          <h2 className="font-semibold">Shipping</h2>
+          <div className="mt-2 text-sm opacity-80 space-y-1">
+            <div>{order.shippingAddress?.address}</div>
+            <div>
+              {order.shippingAddress?.city}, {order.shippingAddress?.state}{" "}
+              {order.shippingAddress?.postalCode}
+            </div>
+            <div>{order.shippingAddress?.country}</div>
+            {order.shippingAddress?.phone ? (
+              <div>Phone: {order.shippingAddress.phone}</div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/10 p-4">
+          <h2 className="font-semibold">Summary</h2>
+          <div className="mt-2 text-sm opacity-80 space-y-2">
+            <div className="flex justify-between">
+              <span>Items</span>
+              <span>₹{order.itemsPrice ?? "-"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              <span>₹{order.shippingPrice ?? "-"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tax</span>
+              <span>₹{order.taxPrice ?? "-"}</span>
+            </div>
+            <div className="flex justify-between font-semibold pt-2 border-t border-white/10">
+              <span>Total</span>
+              <span>₹{order.totalPrice ?? "-"}</span>
+            </div>
+            <div className="pt-2 opacity-70">
+              Payment: {order.paymentMethod?.toUpperCase() || "COD"}
+            </div>
+            <div className="opacity-70">Status: {order.status || "processing"}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex gap-3 flex-wrap">
+        <button
+          onClick={() => navigate(`/order/${order._id}`)}
+          className="px-4 py-2 rounded border border-white/10 hover:opacity-90"
+        >
+          View full order
+        </button>
+        <button
+          onClick={() => navigate("/products")}
+          className="px-4 py-2 rounded border border-white/10 hover:opacity-90"
+        >
+          Continue shopping
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default OrderConfirmationPage;
