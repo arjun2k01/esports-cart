@@ -2,14 +2,10 @@
 import axios from "axios";
 
 /**
- * Single API client used everywhere.
- * Cookie auth enabled via withCredentials.
- *
- * In Vercel:
- * - set VITE_API_URL to your backend domain (Render)
- *   e.g. https://your-backend.onrender.com
- *
- * If VITE_API_URL is not set, baseURL = "" (same-origin).
+ * IMPORTANT:
+ * Vercel ENV must be:
+ * VITE_API_URL=https://esports-cart.onrender.com
+ * (NO /api at the end)
  */
 
 const api = axios.create({
@@ -19,11 +15,5 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
-
-// Optional: add any global response handling here (keep minimal)
-api.interceptors.response.use(
-  (res) => res,
-  (err) => Promise.reject(err)
-);
 
 export default api;
