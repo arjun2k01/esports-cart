@@ -13,6 +13,8 @@ import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import bcrypt from "bcryptjs";
+import User from "./models/userModel.js";
 
 dotenv.config();
 
@@ -92,4 +94,33 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "dev"})`);
   console.log("✅ CORS allowlist:", Array.from(allowlist));
+
+    // Auto-create admin user on startup if not exists
+  const ensureAdminExists = async () => {
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || "admin@esports.com";
+      const existing = await User.findOne({ email: adminEmail });
+      if (!existing) {
+        const adminPassword = process.env.ADMIN_PASSWORD || "AdminPass123!";
+        const adminName = process.env.ADMIN_NAME || "Admin";
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        await User.create({
+          name: adminName,
+          email: adminEmail,
+          password: hashedPassword,
+          isAdmin: true,
+          phone: "+91-9999999999",
+          address: "Admin Address",
+          city: "Admin City",
+          state: "Admin State",
+          postalCode: "000000",
+          country: "India",
+        });
+        console.log(`✅ Admin user created: ${adminEmail}`);
+      }
+    } catch (err) {
+      console.error("⚠️ Error creating admin:", err.message);
+    }
+  };
+  ensureAdminExists();
 });
