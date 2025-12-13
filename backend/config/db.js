@@ -1,31 +1,35 @@
+// backend/config/db.js
 import mongoose from "mongoose";
 
 const connectDB = async () => {
-  try {
-    // Validate MONGO_URI is set
-    if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI environment variable is not set. Check your .env file.");
-    }
+  const uri = process.env.MONGO_URI;
 
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 30000, // 30 seconds - increased from 5s
-      socketTimeoutMS: 45000,           // 45 seconds for socket operations
-      connectTimeoutMS: 10000,           // 10 seconds for connection
-      retryWrites: true,
-      w: "majority",
+  if (!uri) {
+    console.error("❌ MONGO_URI is not defined in environment variables");
+    process.exit(1);
+  }
+
+  try {
+    // Recommended modern mongoose flags handled internally in newer versions
+    const conn = await mongoose.connect(uri, {
+      // keep these minimal to avoid version mismatches
+      autoIndex: process.env.NODE_ENV !== "production", // ✅ disable autoIndex in prod
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+    mongoose.connection.on("error", (err) => {
+      console.error("❌ MongoDB runtime error:", err);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.warn("⚠️ MongoDB disconnected");
+    });
+
     return conn;
   } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    console.error("Full Error:", error);
-    
-    // Don't exit immediately on Vercel - allow graceful shutdown
-    if (process.env.NODE_ENV !== "production") {
-      process.exit(1);
-    }
-    throw error; // Re-throw for production to handle gracefully
+    console.error("❌ MongoDB connection failed:", error?.message || error);
+    process.exit(1);
   }
 };
 

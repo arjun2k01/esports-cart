@@ -55,7 +55,7 @@ const OrderConfirmationPage = () => {
     return (
       <div className="max-w-5xl mx-auto px-4 py-10">
         <div className="p-3 rounded border border-red-400/40 bg-red-500/10">
-          Couldn’t load this order.
+          Couldn't load this order.
         </div>
         <div className="mt-4">
           <Link className="underline" to="/orders">
