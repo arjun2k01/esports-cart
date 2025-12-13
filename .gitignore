@@ -23,3 +23,34 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Production environment variables (CRITICAL)
+backend/.env
+backend/.env.local
+backend/.env.*.local
+api/.env
+api/.env.local
+
+# Logs
+*.log
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Sensitive
+*.pem
+*.key
+*.p8
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dist
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/

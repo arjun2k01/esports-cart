@@ -1,53 +1,31 @@
-// backend/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import { AppError } from "./errorHandler.js";
 
-/**
- * protect:
- * - Reads HttpOnly cookie "token"
- * - Verifies JWT payload { id }
- * - Attaches req.user
- */
 export const protect = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Not authorized" });
+  }
+
   try {
-    const token = req.cookies?.token;
-
-    if (!token) {
-      res.status(401);
-      throw new Error("Not authorized, no token");
-    }
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
 
-    if (!decoded?.id) {
-      res.status(401);
-      throw new Error("Not authorized, invalid token payload");
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "User not found" });
     }
 
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (!user) {
-      res.status(401);
-      throw new Error("Not authorized, user not found");
-    }
-
-    req.user = user;
     next();
   } catch (err) {
-    // JWT invalid/expired or other auth issue
-    res.status(res.statusCode && res.statusCode !== 200 ? res.statusCode : 401);
-    next(err);
+    res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
 
-/**
- * admin:
- * - Requires protect first
- * - Checks req.user.isAdmin
- */
 export const admin = (req, res, next) => {
-  if (req.user?.isAdmin) return next();
-
-  res.status(403);
-  throw new Error("Admin access required");
+  if (!req.user || !req.user.isAdmin) {
+    return res.status(403).json({ success: false, message: "Admin access required" });
+  }
+  next();
 };
