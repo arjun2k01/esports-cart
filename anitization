@@ -1,0 +1,3 @@
+[33m9b6e9dd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: Mock passport-google-oauth20 in test setup to prevent initialization errors  Added jest.mock for passport-google-oauth20 to prevent OAuth2Strategy initialization errors during test runs
+[33mbfcfcf3[m fix: Import setup.js in products.test.js to load environment variables  Ensure OAuth environment variables are initialized before running product tests
+[33m6026aa8[m fix: Import setup.js in auth.test.js to load environment variables  Ensure OAuth environment variables are initialized before running auth tests
