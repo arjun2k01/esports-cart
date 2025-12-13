@@ -3,35 +3,51 @@ import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 
 /**
- * Cookie-only auth middleware.
- * Expects: HttpOnly cookie named `token` containing JWT with payload { id: <userId> }
+ * protect:
+ * - Reads HttpOnly cookie "token"
+ * - Verifies JWT payload { id }
+ * - Attaches req.user
  */
 export const protect = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
 
     if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token" });
+      res.status(401);
+      throw new Error("Not authorized, no token");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ IMPORTANT: token payload must contain `id`
+    if (!decoded?.id) {
+      res.status(401);
+      throw new Error("Not authorized, invalid token payload");
+    }
+
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
-      return res.status(401).json({ message: "Not authorized, user not found" });
+      res.status(401);
+      throw new Error("Not authorized, user not found");
     }
 
     req.user = user;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Not authorized, token invalid" });
+    // JWT invalid/expired or other auth issue
+    res.status(res.statusCode && res.statusCode !== 200 ? res.statusCode : 401);
+    next(err);
   }
 };
 
-// ✅ Admin middleware: must be authenticated + admin
+/**
+ * admin:
+ * - Requires protect first
+ * - Checks req.user.isAdmin
+ */
 export const admin = (req, res, next) => {
-  if (req.user && req.user.isAdmin) return next();
-  return res.status(403).json({ message: "Admin access required" });
+  if (req.user?.isAdmin) return next();
+
+  res.status(403);
+  throw new Error("Admin access required");
 };
