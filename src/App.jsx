@@ -1,34 +1,34 @@
-// frontend/src/App.jsx
+// src/App.jsx
 import { Routes, Route } from "react-router-dom";
 
-// Layout (adjust if your repo uses different components)
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
-// Route guards (we created these)
 import ProtectedRoute from "./components/routes/ProtectedRoute.jsx";
 import AdminRoute from "./components/routes/AdminRoute.jsx";
 
-// Public pages (adjust paths if your repo uses /screens instead of /pages)
-import HomePage from "./pages/HomePage";
-import ProductPage from "./pages/ProductPage";
-import CartPage from "./pages/CartPage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/SignupPage.jsx";
+// Pages (these exist in your repo)
+import HomePage from "./pages/HomePage.jsx";
+import ProductListPage from "./pages/ProductListPage.jsx";
+import ProductDetailPage from "./pages/ProductDetailPage.jsx";
+import CartPage from "./pages/CartPage.jsx";
+import CheckoutPage from "./pages/CheckoutPage.jsx";
+import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
+import OrdersPage from "./pages/OrdersPage.jsx";
+import OrderDetailPage from "./pages/OrderDetailPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import WishListPage from "./pages/WishListPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import SignupPage from "./pages/SignupPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
 
-// Auth required pages
-import ShippingPage from "./pages/ShippingPage";
-import PaymentPage from "./pages/PaymentPage";
-import PlaceOrderPage from "./pages/PlaceOrderPage";
-import OrderPage from "./pages/OrderPage";
-import ProfilePage from "./pages/ProfilePage";
-
-// Admin pages
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
-import AdminProductsPage from "./pages/admin/AdminProductsPage";
-import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
-import AdminProductEditPage from "./pages/admin/AdminProductEditPage";
-import AdminUserEditPage from "./pages/admin/AdminUserEditPage";
+// Admin pages (we add these below)
+import AdminUsersPage from "./pages/admin/AdminUsersPage.jsx";
+import AdminProductsPage from "./pages/admin/AdminProductsPage.jsx";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage.jsx";
+import AdminProductEditPage from "./pages/admin/AdminProductEditPage.jsx";
+import AdminUserEditPage from "./pages/admin/AdminUserEditPage.jsx";
 
 export default function App() {
   return (
@@ -39,17 +39,20 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/products" element={<ProductListPage />} />
+          <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<WishListPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register" element={<SignupPage />} />
 
-          {/* Authenticated users */}
+          {/* Auth required */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/shipping" element={<ShippingPage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/placeorder" element={<PlaceOrderPage />} />
-            <Route path="/order/:id" element={<OrderPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/order/:id" element={<OrderDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
@@ -65,17 +68,7 @@ export default function App() {
           </Route>
 
           {/* Fallback */}
-          <Route
-            path="*"
-            element={
-              <div className="max-w-5xl mx-auto px-4 py-10">
-                <h1 className="text-2xl font-semibold">Page not found</h1>
-                <p className="opacity-70 mt-2">
-                  The page you are looking for doesn’t exist.
-                </p>
-              </div>
-            }
-          />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 
