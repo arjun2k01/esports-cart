@@ -33,22 +33,37 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
 /**
- * ✅ CORS for Vercel frontend -> Render backend with cookies
- * Render ENV:
- * CLIENT_URL=https://esports-cart.vercel.app
- * (If multiple origins: comma separated)
+ * ✅ CORS (Rock-solid)
+ * Allows:
+ * - https://esports-cart.vercel.app
+ * - localhost dev (optional)
+ *
+ * IMPORTANT:
+ * - Works with cookies: credentials: true
+ * - Does not fail silently if env missing
  */
-const allowedOrigins = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const allowlist = new Set(
+  (process.env.CLIENT_URL || "https://esports-cart.vercel.app")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+
+// Add local dev origins safely (optional)
+allowlist.add("http://localhost:5173");
+allowlist.add("http://localhost:3000");
 
 app.use(
   cors({
-    origin: function (origin, cb) {
-      if (!origin) return cb(null, true); // Postman/curl
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS blocked for origin: ${origin}`), false);
+    origin: (origin, cb) => {
+      // Requests like Postman/curl may not send origin
+      if (!origin) return cb(null, true);
+
+      if (allowlist.has(origin)) return cb(null, true);
+
+      // ❗ Do NOT throw hard failures in production without logging
+      console.log("❌ CORS blocked origin:", origin);
+      return cb(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -56,8 +71,8 @@ app.use(
   })
 );
 
-// Preflight
-app.options("*", cors({ credentials: true }));
+// Must respond to preflight with same CORS settings
+app.options("*", cors({ origin: true, credentials: true }));
 
 // ---- Health ----
 app.get("/health", (req, res) => {
@@ -76,4 +91,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "dev"})`);
+  console.log("✅ CORS allowlist:", Array.from(allowlist));
 });

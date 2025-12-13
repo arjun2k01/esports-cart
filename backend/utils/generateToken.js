@@ -10,8 +10,8 @@ const generateToken = (res, userId) => {
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: isProd, // ✅ required on https (Render)
-    sameSite: isProd ? "none" : "lax", // ✅ required for cross-site cookies (Vercel -> Render)
+    secure: isProd, // ✅ must be true for HTTPS (Render)
+    sameSite: isProd ? "none" : "lax", // ✅ required for Vercel -> Render cookies
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });
