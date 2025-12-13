@@ -1,216 +1,197 @@
 // src/pages/ProductListPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useCart, useWishlist } from '../context/AppProviders';
-import { Search, SlidersHorizontal, X, ShoppingCart, Heart, AlertCircle } from 'lucide-react';
-import axiosInstance from '../lib/axios';
-import { toast } from 'react-hot-toast';
-import Pagination from '../components/Pagination';
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import api from "../lib/axios";
 
-const ProductListPage = () => {
-  const [products, setProducts] = useState([]);
+const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+
+export default function ProductListPage() {
+  const [params, setParams] = useSearchParams();
+
+  const q = params.get("q") || "";
+  const sort = params.get("sort") || "new";
+  const page = Number(params.get("page") || 1);
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [stockFilter, setStockFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
-  
-  const { addToCart } = useCart();
-  const { addToWishlist, isInWishlist } = useWishlist();
+  const [products, setProducts] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, pages: 1 });
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const setQueryParam = (key, value) => {
+    const next = new URLSearchParams(params);
+    if (!value || value === "") next.delete(key);
+    else next.set(key, String(value));
+    // reset to page 1 when filters change (except page itself)
+    if (key !== "page") next.set("page", "1");
+    setParams(next, { replace: true });
+  };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get('/products');
-      setProducts(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products. Please try again.');
-      toast.error('Failed to load products');
+
+      // Pagination-ready query params.
+      // If backend doesn't support, it will ignore safely.
+      const res = await api.get("/api/products", {
+        params: {
+          keyword: q,
+          sort,
+          pageNumber: page,
+          pageSize: 12,
+        },
+      });
+
+      const data = res.data;
+
+      // Support both shapes:
+      // 1) Array: [ {..}, {..} ]
+      // 2) Paginated object: { products: [], page: 1, pages: 5 }
+      if (Array.isArray(data)) {
+        setProducts(data);
+        setMeta({ page: 1, pages: 1 });
+      } else {
+        setProducts(data.products || []);
+        setMeta({
+          page: Number(data.page || 1),
+          pages: Number(data.pages || 1),
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.response?.data?.message || "Failed to load products");
+      setProducts([]);
+      setMeta({ page: 1, pages: 1 });
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category))];
-    return ['all', ...cats];
-  }, [products]);
+  useEffect(() => {
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, sort, page]);
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products];
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
-    }
-    if (stockFilter === 'inStock') {
-      filtered = filtered.filter(p => p.countInStock > 0);
-    } else if (stockFilter === 'outOfStock') {
-      filtered = filtered.filter(p => p.countInStock === 0);
-    }
-    switch (sortBy) {
-      case 'priceLowHigh':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'priceHighLow':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'name':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'newest':
-      default:
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-    }
-    return filtered;
-  }, [products, searchQuery, selectedCategory, stockFilter, sortBy]);
+  const canPrev = meta.page > 1;
+  const canNext = meta.page < meta.pages;
 
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('all');
-    setStockFilter('all');
-    setSortBy('newest');
-  };
+  const pageNumbers = useMemo(() => {
+    // simple windowed pagination
+    const total = meta.pages || 1;
+    const current = meta.page || 1;
+    const window = 5;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-neutral-800 rounded-2xl h-80"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const start = Math.max(1, current - Math.floor(window / 2));
+    const end = Math.min(total, start + window - 1);
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black py-12 px-4 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Oops! Something went wrong</h2>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button onClick={fetchProducts} className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all">
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const list = [];
+    for (let i = start; i <= end; i++) list.push(i);
+    return { total, current, list };
+  }, [meta.page, meta.pages]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            ALL <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">PRODUCTS</span>
-          </h1>
-          <p className="text-gray-400">Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}</p>
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Products</h1>
+          <p className="mt-1 opacity-70">Find your esports gear</p>
         </div>
-        <div className="mb-8 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-            <input type="text" placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-neutral-900/50 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all" />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            )}
+
+        {/* Controls */}
+        <div className="flex gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <input
+              value={q}
+              onChange={(e) => setQueryParam("q", e.target.value)}
+              placeholder="Search…"
+              className="px-3 py-2 rounded border border-white/10 bg-transparent"
+            />
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="flex-1 px-4 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50">
-              {categories.map(cat => (<option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>))}
-            </select>
-            <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="flex-1 px-4 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50">
-              <option value="all">All Stock</option>
-              <option value="inStock">In Stock</option>
-              <option value="outOfStock">Out of Stock</option>
-            </select>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 px-4 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50">
-              <option value="newest">Newest First</option>
-              <option value="priceLowHigh">Price: Low to High</option>
-              <option value="priceHighLow">Price: High to Low</option>
-              <option value="name">Name: A-Z</option>
-            </select>
-            {(searchQuery || selectedCategory !== 'all' || stockFilter !== 'all' || sortBy !== 'newest') && (
-              <button onClick={clearFilters} className="px-6 py-3 bg-red-500/10 border border-red-500/50 text-red-500 rounded-xl hover:bg-red-500/20 transition-all whitespace-nowrap">Clear Filters</button>
-            )}
-          </div>
+
+          <select
+            value={sort}
+            onChange={(e) => setQueryParam("sort", e.target.value)}
+            className="px-3 py-2 rounded border border-white/10 bg-transparent"
+          >
+            <option value="new">Newest</option>
+            <option value="price_asc">Price: Low → High</option>
+            <option value="price_desc">Price: High → Low</option>
+            <option value="rating">Top rated</option>
+          </select>
         </div>
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-20">
-            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-white mb-2">No products found</h3>
-            <p className="text-gray-400 mb-6">Try adjusting your search or filters</p>
-            <button onClick={clearFilters} className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all">Clear All Filters</button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <div key={product._id} className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 group">
-                <Link to={`/product/${product._id}`} className="block relative overflow-hidden">
-                  <img src={product.image} alt={product.name} className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300" />
-                  {product.countInStock === 0 ? (
-                    <div className="absolute top-4 right-4 px-4 py-2 bg-red-500 rounded-full"><span className="text-xs font-bold text-white">SOLD OUT</span></div>
-                  ) : product.countInStock < 5 ? (
-                    <div className="absolute top-4 right-4 px-4 py-2 bg-orange-500 rounded-full"><span className="text-xs font-bold text-white">LOW STOCK</span></div>
-                  ) : null}
-                </Link>
-                <div className="p-6">
-                  <Link to={`/product/${product._id}`} className="text-xl font-bold text-white hover:text-orange-500 transition-colors line-clamp-2 mb-2 block">{product.name}</Link>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-3xl font-bold text-orange-500">₹{product.price.toLocaleString('en-IN')}</span>
-                  </div>
-                  {product.category && (<span className="inline-block px-3 py-1 bg-neutral-800 text-gray-400 text-xs rounded-full mb-4">{product.category}</span>)}
-                  <div className="flex items-center gap-2 mb-4">
-                    {product.countInStock > 0 ? (
-                      <span className="text-sm text-green-500 flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span>In Stock ({product.countInStock})</span>
-                    ) : (
-                      <span className="text-sm text-red-500 flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span>Out of Stock</span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {product.countInStock > 0 ? (
-                      <button onClick={() => addToCart(product)} className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2">
-                        <ShoppingCart className="w-4 h-4" />ADD
-                      </button>
-                    ) : (
-                      <button disabled className="flex-1 px-4 py-3 bg-neutral-800 text-gray-500 font-semibold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"><AlertCircle className="w-4 h-4" />SOLD OUT</button>
-                    )}
-                    <button onClick={() => addToWishlist(product)} className={`px-4 py-3 rounded-xl transition-all duration-200 ${isInWishlist(product._id) ? 'bg-orange-500 text-white' : 'bg-neutral-800 border border-neutral-700 text-gray-400 hover:text-orange-500'}`}>
-                      <Heart className={`w-5 h-5 ${isInWishlist(product._id) ? 'fill-current' : ''}`} />
-                    </button>
+      </div>
+
+      {loading ? (
+        <div className="mt-8 text-sm opacity-70">Loading products…</div>
+      ) : products.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-white/10 p-6">
+          <p className="opacity-70">No products found.</p>
+          <button
+            onClick={() => {
+              setParams(new URLSearchParams(), { replace: true });
+            }}
+            className="mt-4 px-4 py-2 rounded border border-white/10 hover:opacity-90"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {products.map((p) => (
+              <Link
+                key={p._id}
+                to={`/product/${p._id}`}
+                className="rounded-xl border border-white/10 overflow-hidden hover:opacity-95 transition"
+              >
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  className="w-full h-48 object-cover"
+                  loading="lazy"
+                />
+                <div className="p-4">
+                  <div className="font-semibold line-clamp-1">{p.name}</div>
+                  <div className="mt-1 text-sm opacity-80">{money(p.price)}</div>
+                  <div className="mt-2 text-sm opacity-70">
+                    Stock: {p.countInStock ?? "-"}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
-                              <Pagination
-                    items={filteredProducts}
-                    itemsPerPage={6}
-                    onPageChange={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  />
           </div>
-        )}
-      </div>
+
+          {/* Pagination UI (works now; becomes real when backend supports pages>1) */}
+          <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">
+            <button
+              disabled={!canPrev}
+              onClick={() => setQueryParam("page", meta.page - 1)}
+              className="px-3 py-2 rounded border border-white/10 disabled:opacity-40"
+            >
+              Prev
+            </button>
+
+            {pageNumbers.list.map((n) => (
+              <button
+                key={n}
+                onClick={() => setQueryParam("page", n)}
+                className={`px-3 py-2 rounded border border-white/10 ${
+                  n === pageNumbers.current ? "opacity-100 font-semibold" : "opacity-70"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+
+            <button
+              disabled={!canNext}
+              onClick={() => setQueryParam("page", meta.page + 1)}
+              className="px-3 py-2 rounded border border-white/10 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
-};
-
-export default ProductListPage;
+}

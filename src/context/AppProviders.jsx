@@ -1,178 +1,134 @@
 // src/context/AppProviders.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { toast } from 'react-hot-toast';
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-// ---------------- CART CONTEXT ----------------
-const CartContext = createContext();
-export const useCart = () => useContext(CartContext);
+/**
+ * Enterprise-stable cart provider:
+ * - Single source of truth for cart state
+ * - Persists to localStorage
+ * - Handles qty correctly
+ * - Safe guards (stock limits, negative qty, bad values)
+ */
 
-const CartProvider = ({ children }) => {
-  // Initialize from localStorage
+const CART_KEY = "esports_cart_v1";
+
+const CartContext = createContext(null);
+
+export const useCart = () => {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within AppProviders");
+  return ctx;
+};
+
+const normalizeItem = (product, qty) => {
+  const safeQty = Math.max(1, Number(qty || 1));
+  const stock = Number(product?.countInStock ?? product?.stock ?? 999999);
+
+  return {
+    _id: product._id,
+    name: product.name,
+    image: product.image,
+    price: Number(product.price || 0),
+    countInStock: Number.isFinite(stock) ? stock : 999999,
+    qty: Math.min(safeQty, Number.isFinite(stock) ? stock : safeQty),
+  };
+};
+
+export default function AppProviders({ children }) {
   const [cart, setCart] = useState(() => {
     try {
-      const savedCart = localStorage.getItem('esports-cart');
-      return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      console.error('Error loading cart from localStorage:', error);
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
       return [];
     }
   });
 
-  // Persist to localStorage whenever cart changes
+  // Persist cart
   useEffect(() => {
     try {
-      localStorage.setItem('esports-cart', JSON.stringify(cart));
-    } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {
+      // ignore storage issues
     }
   }, [cart]);
 
-  const addToCart = (product, qty = 1) => {
-    setCart((prev) => {
-      const exists = prev.find((item) => item._id === product._id);
-      if (exists) {
-        toast.success(`Updated ${product.name} quantity in cart`, {
-          duration: 2000,
-          icon: '🛒',
-        });
-        return prev.map((item) =>
-          item._id === product._id ? { ...item, qty: item.qty + qty } : item
-        );
+  // Sync across tabs/windows
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== CART_KEY) return;
+      try {
+        const parsed = e.newValue ? JSON.parse(e.newValue) : [];
+        if (Array.isArray(parsed)) setCart(parsed);
+      } catch {
+        // ignore
       }
-      toast.success(`${product.name} added to cart!`, {
-        duration: 2000,
-        icon: '✅',
-      });
-      return [...prev, { ...product, qty }];
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const addToCart = (product, qty = 1) => {
+    if (!product?._id) return;
+
+    setCart((prev) => {
+      const idx = prev.findIndex((x) => x._id === product._id);
+      const incoming = normalizeItem(product, qty);
+
+      // Merge quantities if already exists
+      if (idx >= 0) {
+        const existing = prev[idx];
+        const mergedQty = Math.min(
+          (existing.qty || 0) + incoming.qty,
+          incoming.countInStock || 999999
+        );
+        const updated = { ...existing, ...incoming, qty: mergedQty };
+        const copy = [...prev];
+        copy[idx] = updated;
+        return copy;
+      }
+
+      return [...prev, incoming];
     });
   };
 
-  const updateQty = (id, qty) => {
-    if (qty < 1) return;
+  const updateQty = (productId, qty) => {
+    const safeQty = Math.max(1, Number(qty || 1));
     setCart((prev) =>
-      prev.map((item) => (item._id === id ? { ...item, qty } : item))
+      prev.map((x) => {
+        if (x._id !== productId) return x;
+        const limit = Number.isFinite(Number(x.countInStock)) ? Number(x.countInStock) : safeQty;
+        return { ...x, qty: Math.min(safeQty, limit) };
+      })
     );
   };
 
-  const removeFromCart = (id) => {
-    const item = cart.find(item => item._id === id);
-    setCart((prev) => prev.filter((item) => item._id !== id));
-    if (item) {
-      toast.success(`${item.name} removed from cart`, {
-        duration: 2000,
-        icon: '🗑️',
-      });
-    }
+  const removeFromCart = (productId) => {
+    setCart((prev) => prev.filter((x) => x._id !== productId));
   };
 
-  const clearCart = () => {
-    setCart([]);
-    toast.success('Cart cleared', {
-      duration: 2000,
-      icon: '🧹',
-    });
-  };
+  const clearCart = () => setCart([]);
 
-  const cartTotal = cart.reduce(
-    (total, item) => total + item.price * item.qty,
-    0
+  const cartCount = useMemo(() => cart.reduce((sum, x) => sum + (Number(x.qty) || 0), 0), [cart]);
+
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, x) => sum + (Number(x.price) || 0) * (Number(x.qty) || 0), 0),
+    [cart]
   );
 
-  const cartItemsCount = cart.reduce((count, item) => count + item.qty, 0);
-
-  return (
-    <CartContext.Provider
-      value={{ 
-        cart, 
-        addToCart, 
-        updateQty, 
-        removeFromCart, 
-        clearCart, 
-        cartTotal,
-        cartItemsCount 
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+  const value = useMemo(
+    () => ({
+      cart,
+      cartCount,
+      cartTotal,
+      addToCart,
+      updateQty,
+      removeFromCart,
+      clearCart,
+      setCart, // optional escape hatch (admin/dev)
+    }),
+    [cart, cartCount, cartTotal]
   );
-};
 
-// ---------------- WISHLIST CONTEXT ----------------
-const WishlistContext = createContext();
-export const useWishlist = () => useContext(WishlistContext);
-
-const WishlistProvider = ({ children }) => {
-  // Initialize from localStorage
-  const [wishlist, setWishlist] = useState(() => {
-    try {
-      const savedWishlist = localStorage.getItem('esports-wishlist');
-      return savedWishlist ? JSON.parse(savedWishlist) : [];
-    } catch (error) {
-      console.error('Error loading wishlist from localStorage:', error);
-      return [];
-    }
-  });
-
-  // Persist to localStorage whenever wishlist changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('esports-wishlist', JSON.stringify(wishlist));
-    } catch (error) {
-      console.error('Error saving wishlist to localStorage:', error);
-    }
-  }, [wishlist]);
-
-  const addToWishlist = (product) => {
-    setWishlist((prev) => {
-      const exists = prev.find((item) => item._id === product._id);
-      if (exists) {
-        toast('Already in wishlist', {
-          duration: 2000,
-          icon: 'ℹ️',
-        });
-        return prev;
-      }
-      toast.success(`${product.name} added to wishlist!`, {
-        duration: 2000,
-        icon: '❤️',
-      });
-      return [...prev, product];
-    });
-  };
-
-  const removeFromWishlist = (id) => {
-    const item = wishlist.find(item => item._id === id);
-    setWishlist((prev) => prev.filter((item) => item._id !== id));
-    if (item) {
-      toast.success(`${item.name} removed from wishlist`, {
-        duration: 2000,
-        icon: '💔',
-      });
-    }
-  };
-
-  const isInWishlist = (id) => {
-    return wishlist.some((item) => item._id === id);
-  };
-
-  return (
-    <WishlistContext.Provider
-      value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist }}
-    >
-      {children}
-    </WishlistContext.Provider>
-  );
-};
-
-// -------------- MASTER PROVIDER (WRAPS ALL) --------------
-const AppProviders = ({ children }) => {
-  return (
-    <CartProvider>
-      <WishlistProvider>
-        {children}
-      </WishlistProvider>
-    </CartProvider>
-  );
-};
-
-export default AppProviders;
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+}
