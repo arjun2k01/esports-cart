@@ -60,7 +60,6 @@ export default function App() {
           {/* Admin only */}
           <Route element={<AdminRoute />}>
           <Route path="/admin/products/new" element={<AdminProductCreatePage />} />
-
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/users/:id/edit" element={<AdminUserEditPage />} />
 
